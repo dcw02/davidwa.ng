@@ -1,0 +1,3 @@
+[submodule "fonts/iosevka_lite"]
+	path = fonts/iosevka_lite
+	url = git@github.com:dcw02/iosevka_lite.git

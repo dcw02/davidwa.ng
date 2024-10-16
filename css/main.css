@@ -1,0 +1,234 @@
+:root {
+    --font-family: "Iosevka Web", monospace;
+    --line-height: 1.6rem;
+
+    --background-color: rgb(18, 18, 18);
+    --primary-text-color: rgb(224, 224, 224);
+    --secondary-text-color: rgb(160, 160, 160);
+    --tertiary-text-color: rgb(108, 108, 108);
+    --highlight-background-color: rgb(220, 208, 255);
+    --highlight-text-color: rgb(4, 4, 5);
+
+    font-family: var(--font-family);
+    font-optical-sizing: auto;
+    font-weight: normal;
+    font-size: 14px;
+    text-align: left;
+    text-rendering: optimizeLegibility;
+}
+
+* {
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--background-color) var(--background-color);
+}
+
+html {
+    margin: 0;
+    padding: 0;
+    background: var(--background-color);
+    color: var(--primary-text-color);
+}
+
+h1, h2, h3, p, i, a, li {
+    color: var(--primary-text-color);
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    font-stretch: normal;
+    margin: 4.5rem 0 -1rem 0;
+}
+
+h2 {
+    font-size: 2rem;
+    font-stretch: normal;
+    font-weight: 300;
+    margin: 28px 0 -14px 0;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-stretch: normal;
+    font-weight: 300;
+    margin: 21px 0 -21px 0;
+}
+
+hr {
+    position: relative;
+    display: block;
+    color: var(--tertiary-text-color);
+}
+
+p, i, a, li, tr, th, td, caption {
+    font-size: 1rem;
+    font-weight: 400;
+    font-stretch: expanded;
+    line-height: 1.6rem;
+}
+
+p, i, a {
+    margin: 1.5rem 0 1.5rem 0;
+}
+
+p.signature {
+    text-align: right;
+    margin: 2.25rem 0;
+}
+
+footer {
+    margin-top: 3rem;
+}
+
+ul, ol {
+    margin: -1.5rem 0 -1.5rem 0;
+}
+
+ul ul, ol ol, ul ol, ol ul {
+    margin: 0 0 0 0;
+}
+
+figcaption {
+    display: block;
+    font-style: italic;
+    margin-top: var(--line-height);
+    color: var(--secondary-text-color);
+}
+
+table, tr, th, td {
+    color: var(--primary-text-color);
+    border: 1px solid;
+    padding: 5px 10px;
+    margin: auto;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+caption {
+    margin: 0.5rem 0 0 0;
+    caption-side: bottom;
+}
+
+a {
+    text-decoration: underline 1px;
+    text-underline-offset: 2px;
+    position: relative;
+}
+
+a.highlight {
+    transition: color 0.3s ease;
+}
+
+a.highlight:active,
+a.highlight:hover {
+    text-decoration: none;
+    background: var(--highlight-background-color);
+    color: var(--highlight-text-color);
+}
+
+a.highlight:hover::before,
+a.highlight:hover::after,
+a.highlight:active::before,
+a.highlight:active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--highlight-background-color);
+}
+
+a.highlight:hover::before,
+a.highlight:active::before {
+    border-radius: 3px 0 0 3px;
+    left: -3px;
+    width: 3px;
+}
+
+a.highlight:hover::after,
+a.highlight:active::after{
+    border-radius: 0 3px 3px 0;
+    right: -3px;
+    width: 3px;
+}
+
+a.item.active {
+    color: var(--primary-text-color);
+    position: relative;
+    text-decoration: underline 1px;
+    text-decoration-skip-ink: auto;
+    text-decoration-offset: -3.35px;
+}
+
+a.item {
+    text-decoration: none;
+    color: var(--secondary-text-color);
+    overflow: hidden;
+}
+
+a.item:not(.active)::after {
+    content: '';
+    position: absolute;
+    bottom: 3.35px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--secondary-text-color);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.1s linear;
+}
+
+a.item:not(.active):hover::after {
+    transform: scaleX(1);
+}
+
+figcaption a {
+    color: var(--secondary-text-color);
+}
+
+img, video {
+    display: block;
+    width: 100%;
+    object-fit: contain;
+    overflow: hidden;
+}
+
+.container {
+    font-size: 1rem;
+    font-stretch: expanded;
+    width: 82ch;
+    max-width: 100%;
+    padding: 0 1ch 0 1ch;
+    margin: auto;
+}
+
+.subtitle, .subheading {
+    color: var(--secondary-text-color);
+}
+
+.subtitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 0 1.5rem 0;
+}
+
+.menu {
+    font-size: 1rem;
+    display: flex;
+    gap: 1ch;
+    align-items: center;
+    margin: -1.5rem 0 -1.5rem 0;
+}
+
+.subheading {
+    margin: 1.5rem 0 -1.5rem 0;
+}
+
+::selection{
+    background-color: var(--highlight-background-color);
+    color: var(--highlight-text-color);
+}
