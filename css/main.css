@@ -154,15 +154,7 @@ a.highlight:active::after{
     width: 3px;
 }
 
-a.item.active {
-    color: var(--primary-text-color);
-    position: relative;
-    text-decoration: underline 1px;
-    text-decoration-skip-ink: auto;
-    text-decoration-offset: -3.35px;
-}
-
-a.item {
+a.item:not(.active) {
     text-decoration: none;
     color: var(--secondary-text-color);
     overflow: hidden;
