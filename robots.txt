@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /_content/
+Sitemap: https://davidwa.ng/sitemap.xml
+Crawl-delay: 1 

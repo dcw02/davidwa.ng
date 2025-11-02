@@ -1,0 +1,1144 @@
+document.addEventListener("DOMContentLoaded", () => {
+    const contentEl = document.getElementById("content");
+    if (!contentEl) {
+        return;
+    }
+
+    const siteName = "David Wang";
+    const navLinks = Array.from(document.querySelectorAll(".subtitle .menu a.item"));
+    const headerTitleEl = document.querySelector(".container > h1");
+    const subtitlePrimaryEl = document.querySelector(".subtitle > span:first-child");
+
+    // Generic menu responsive handler
+    const handleResponsiveMenu = (menuEl) => {
+        if (!menuEl) {
+            return;
+        }
+
+        const container = menuEl.closest(".subtitle") || menuEl.closest("footer");
+        if (!container) {
+            return;
+        }
+
+        // Create a measurement span if it doesn't exist
+        let measureSpan = document.getElementById("menu-measure");
+        if (!measureSpan) {
+            measureSpan = document.createElement("span");
+            measureSpan.id = "menu-measure";
+            measureSpan.style.visibility = "hidden";
+            measureSpan.style.position = "absolute";
+            measureSpan.style.whiteSpace = "nowrap";
+            const computed = window.getComputedStyle(menuEl);
+            measureSpan.style.fontSize = computed.fontSize;
+            measureSpan.style.fontFamily = computed.fontFamily;
+            measureSpan.style.fontWeight = computed.fontWeight;
+            measureSpan.style.fontStretch = computed.fontStretch;
+            document.body.appendChild(measureSpan);
+        }
+
+        const containerWidth = container.offsetWidth;
+
+        // Calculate 1ch in pixels
+        measureSpan.textContent = "0";
+        const oneChWidth = measureSpan.offsetWidth;
+
+        // Temporarily ensure menu is in horizontal layout for accurate measurement
+        menuEl.classList.remove("menu--stacked");
+
+        // Force reflow to get accurate measurements
+        void menuEl.offsetWidth;
+
+        // Calculate menu width: sum of items + 1ch * (items - 1)
+        const menuItems = menuEl.querySelectorAll(".item, a");
+        let menuItemsWidth = 0;
+        menuItems.forEach((item) => {
+            menuItemsWidth += item.offsetWidth;
+        });
+        const menuWidth = menuItemsWidth + oneChWidth * (menuItems.length - 1);
+
+        // Special handling for subtitle container with variants
+        const subtitleContainer = container.classList.contains("subtitle") ? container : null;
+        const subtitleTextEl = subtitleContainer ? subtitleContainer.querySelector("span:first-child") : null;
+        const variants = [];
+
+        if (subtitleTextEl) {
+            let index = 0;
+            while (subtitleTextEl.hasAttribute(`data-subtitle-${index}`)) {
+                variants.push(subtitleTextEl.getAttribute(`data-subtitle-${index}`));
+                index++;
+            }
+        }
+
+        // Edge case: if menu alone is wider than container, stack the menu
+        if (menuWidth > containerWidth) {
+            if (subtitleTextEl && variants.length > 0) {
+                subtitleTextEl.textContent = variants[variants.length - 1];
+                subtitleContainer.classList.add("subtitle--stacked");
+            }
+            menuEl.classList.add("menu--stacked");
+            return;
+        }
+
+        // For subtitle containers with variants, try progressive degradation
+        if (subtitleContainer && subtitleTextEl && variants.length > 0) {
+            // Gap between subtitle and menu (4ch)
+            const gap = oneChWidth * 4;
+
+            // Try each variant
+            let selectedVariant = null;
+            for (const variant of variants) {
+                measureSpan.textContent = variant;
+                const subtitleWidth = measureSpan.offsetWidth;
+                const totalWidth = subtitleWidth + gap + menuWidth;
+
+                if (totalWidth <= containerWidth) {
+                    selectedVariant = variant;
+                    break;
+                }
+            }
+
+            if (selectedVariant) {
+                // Found a variant that fits - use horizontal layout
+                subtitleTextEl.textContent = selectedVariant;
+                subtitleContainer.classList.remove("subtitle--stacked");
+            } else {
+                // No variant fits - use stacked layout with the last (shortest) variant
+                subtitleTextEl.textContent = variants[variants.length - 1];
+                subtitleContainer.classList.add("subtitle--stacked");
+            }
+        }
+    };
+
+    // Handle all menus
+    const handleAllMenus = () => {
+        document.querySelectorAll(".menu").forEach(handleResponsiveMenu);
+    };
+
+    // Debounced resize handler to prevent flickering
+    let resizeTimeout;
+    const debouncedMenuHandler = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(handleAllMenus, 10);
+    };
+
+    // Run on load and resize
+    handleAllMenus();
+    window.addEventListener("resize", debouncedMenuHandler);
+
+    const defaultHeader = {
+        title: headerTitleEl ? headerTitleEl.textContent.trim() : siteName,
+        subtitle: subtitlePrimaryEl ? subtitlePrimaryEl.textContent.trim() : ""
+    };
+
+    const routes = {
+        "/": { fragment: "_content/home.html", documentTitle: siteName },
+        "/projects": { fragment: "_content/projects.html", documentTitle: `Projects - ${siteName}` },
+        "/writing": { fragment: "_content/writing.html", documentTitle: `Writing - ${siteName}` },
+        "/index.html": { fragment: "_content/home.html", documentTitle: siteName }
+    };
+
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    let hljsLoaded = false;
+    let hljsLoading = false;
+
+    const loadHighlightJS = () => {
+        return new Promise((resolve, reject) => {
+            if (hljsLoaded) {
+                resolve();
+                return;
+            }
+            if (hljsLoading) {
+                // Wait for existing load to complete
+                const checkInterval = setInterval(() => {
+                    if (hljsLoaded) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+                return;
+            }
+
+            hljsLoading = true;
+
+            // Load CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/@catppuccin/highlightjs@1.0.1/css/catppuccin-mocha.css';
+            document.head.appendChild(link);
+
+            // Load JS
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js';
+            script.onload = () => {
+                hljsLoaded = true;
+                hljsLoading = false;
+                resolve();
+            };
+            script.onerror = () => {
+                hljsLoading = false;
+                reject(new Error('Failed to load Highlight.js'));
+            };
+            document.body.appendChild(script);
+        });
+    };
+
+    const enhanceCodeBlocks = (root = document) => {
+        const codeBlocks = root.querySelectorAll("pre code");
+
+        // Only load Highlight.js if there are code blocks
+        if (codeBlocks.length > 0) {
+            loadHighlightJS().then(() => {
+                codeBlocks.forEach((block) => {
+                    if (typeof hljs !== 'undefined') {
+                        hljs.highlightElement(block);
+                    }
+                });
+            }).catch((error) => {
+                console.error('Syntax highlighting unavailable:', error);
+            });
+        }
+
+        const tags = root.querySelectorAll(".code-language-tag");
+        tags.forEach((tag) => {
+            if (tag.dataset.enhanced === "true") {
+                return;
+            }
+            const container = tag.closest(".code-block");
+            const pre = container ? container.querySelector("pre") : tag.closest("pre");
+            const code = pre ? pre.querySelector("code") : null;
+            if (!pre || !code) {
+                return;
+            }
+            const hoverTarget = container || pre;
+            const codeScroll = container ? container.querySelector(".code-scroll") : null;
+
+            const pointerIsInside = () => {
+                return hoverTarget ? hoverTarget.matches(":hover") : false;
+            };
+
+            const ensureHoverClass = (delay = 100) => {
+                if (!container) {
+                    return;
+                }
+                // Cancel any pending removal
+                if (container._hoverRemovalTimer) {
+                    clearTimeout(container._hoverRemovalTimer);
+                    container._hoverRemovalTimer = null;
+                }
+                // If already visible, keep it visible
+                if (container.classList.contains("code-block--hover")) {
+                    return;
+                }
+                // Cancel any pending addition
+                if (container._hoverAdditionTimer) {
+                    clearTimeout(container._hoverAdditionTimer);
+                    container._hoverAdditionTimer = null;
+                }
+                // Schedule addition with delay
+                container._hoverAdditionTimer = setTimeout(() => {
+                    container.classList.add("code-block--hover");
+                    container._hoverAdditionTimer = null;
+                }, delay);
+            };
+
+            const scheduleHoverClassRemoval = (delay = 900) => {
+                if (!container) {
+                    return;
+                }
+                // Cancel any pending addition
+                if (container._hoverAdditionTimer) {
+                    clearTimeout(container._hoverAdditionTimer);
+                    container._hoverAdditionTimer = null;
+                }
+                // Cancel any existing removal timer
+                if (container._hoverRemovalTimer) {
+                    clearTimeout(container._hoverRemovalTimer);
+                }
+                container._hoverRemovalTimer = setTimeout(() => {
+                    if (container._hoverPointerActive || container._hoverFocusActive || pointerIsInside()) {
+                        container._hoverRemovalTimer = null;
+                        return;
+                    }
+                    container.classList.remove("code-block--hover");
+                    container._hoverRemovalTimer = null;
+                }, delay);
+            };
+
+            const setPointerHoverActive = (active) => {
+                if (!container) {
+                    return;
+                }
+                container._hoverPointerActive = !!active;
+                if (active) {
+                    ensureHoverClass();
+                }
+            };
+
+            const setFocusHoverActive = (active) => {
+                if (!container) {
+                    return;
+                }
+                container._hoverFocusActive = !!active;
+                if (active) {
+                    ensureHoverClass();
+                }
+            };
+
+            const isHoverActive = () => {
+                if (container && (container._hoverPointerActive || container._hoverFocusActive)) {
+                    return true;
+                }
+                return pointerIsInside();
+            };
+
+            const clearLabelAnimation = () => {
+                if (!tag._labelAnimation) {
+                    return;
+                }
+                if (tag._labelAnimation.fadeOutTimer) {
+                    clearTimeout(tag._labelAnimation.fadeOutTimer);
+                }
+                if (tag._labelAnimation.fadeInTimer) {
+                    clearTimeout(tag._labelAnimation.fadeInTimer);
+                }
+                tag._labelAnimation = null;
+                tag._pendingLabel = null;
+                tag.style.opacity = "1";
+            };
+
+            const setLabel = (label, { immediate = false } = {}) => {
+                const normalized = (label || "").toLowerCase();
+                if (!normalized) {
+                    return;
+                }
+                if (!immediate && (tag._currentLabel === normalized || tag._pendingLabel === normalized)) {
+                    return;
+                }
+
+                const applyLabel = () => {
+                    tag.textContent = normalized;
+                    tag._currentLabel = normalized;
+                    tag._pendingLabel = null;
+                };
+
+                if (immediate) {
+                    clearLabelAnimation();
+                    applyLabel();
+                    tag.style.opacity = "1";
+                    return;
+                }
+
+                clearLabelAnimation();
+                tag._pendingLabel = normalized;
+
+                const fadeOutDuration = 120;
+                const fadeInDuration = 220;
+
+                tag.style.opacity = "0";
+                const fadeOutTimer = setTimeout(() => {
+                    applyLabel();
+                    tag.style.opacity = "1";
+                    const fadeInTimer = setTimeout(() => {
+                        clearLabelAnimation();
+                    }, fadeInDuration);
+                    tag._labelAnimation = { fadeOutTimer, fadeInTimer };
+                }, fadeOutDuration);
+
+                tag._labelAnimation = { fadeOutTimer, fadeInTimer: null };
+            };
+
+            const copyLabel = "copy";
+            const originalLabel = (tag.textContent || "").trim().toLowerCase() || "code";
+            tag.dataset.originalLabel = originalLabel;
+            tag.dataset.enhanced = "true";
+            setLabel(originalLabel, { immediate: true });
+            tag.setAttribute("role", "button");
+            tag.setAttribute("tabindex", "0");
+            tag.setAttribute("aria-label", `Copy ${originalLabel} to clipboard`);
+
+            const resetLabel = () => {
+                tag.dataset.state = "";
+                // Only show copy if pointer is actually hovering, not just focused
+                if (container && container._hoverPointerActive) {
+                    setLabel(copyLabel);
+                } else {
+                    setLabel(tag.dataset.originalLabel);
+                }
+            };
+
+            const showCopyLabel = () => {
+                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                    return;
+                }
+                setLabel(copyLabel);
+            };
+
+            const showOriginalLabel = () => {
+                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                    return;
+                }
+                setLabel(tag.dataset.originalLabel);
+            };
+
+            const handleCopyFailure = () => {
+                tag.dataset.state = "error";
+                setLabel("error");
+                if (tag._copyTimer) {
+                    clearTimeout(tag._copyTimer);
+                }
+                tag._copyTimer = setTimeout(resetLabel, 1500);
+            };
+
+            const handleCopySuccess = () => {
+                tag.dataset.state = "copied";
+                setLabel("copied!");
+                if (tag._copyTimer) {
+                    clearTimeout(tag._copyTimer);
+                }
+                tag._copyTimer = setTimeout(resetLabel, 1500);
+            };
+
+            const copyTextToClipboard = async (text) => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                textarea.setAttribute("readonly", "");
+                textarea.style.position = "absolute";
+                textarea.style.left = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.select();
+                let success = false;
+                try {
+                    success = document.execCommand("copy");
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+                return success;
+            };
+
+            const copyCodeToClipboard = async () => {
+                const codeText = code.innerText || code.textContent || "";
+                if (!codeText) {
+                    handleCopyFailure();
+                    return;
+                }
+                try {
+                    const success = await copyTextToClipboard(codeText);
+                    if (success) {
+                        handleCopySuccess();
+                    } else {
+                        handleCopyFailure();
+                    }
+                } catch (error) {
+                    console.error("Unable to copy code block:", error);
+                    handleCopyFailure();
+                }
+            };
+
+            const handleHoverStart = () => {
+                setPointerHoverActive(true);
+                showCopyLabel();
+            };
+
+            const handleHoverEnd = () => {
+                setPointerHoverActive(false);
+                // Don't interrupt copied!/error states - let user see the feedback
+                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                    scheduleHoverClassRemoval(0);
+                    return;
+                }
+                // Otherwise force label to original when mouse leaves
+                setLabel(tag.dataset.originalLabel);
+                scheduleHoverClassRemoval(0);
+            };
+
+            if (hoverTarget) {
+                hoverTarget.addEventListener("mouseenter", handleHoverStart);
+                hoverTarget.addEventListener("mouseleave", handleHoverEnd);
+                hoverTarget.addEventListener("touchstart", handleHoverStart, { passive: true });
+                hoverTarget.addEventListener("touchend", handleHoverEnd);
+                hoverTarget.addEventListener("touchcancel", handleHoverEnd);
+            }
+
+            if (codeScroll) {
+                codeScroll.addEventListener("scroll", () => {
+                    const pointerWithin = pointerIsInside();
+                    if (pointerWithin) {
+                        setPointerHoverActive(true);
+                        ensureHoverClass(0); // Show immediately when scrolling while hovering
+                        showCopyLabel();
+                    } else if (!(container && container._hoverFocusActive)) {
+                        scheduleHoverClassRemoval(0);
+                    }
+                }, { passive: true });
+            }
+
+            tag.addEventListener("focus", () => {
+                setFocusHoverActive(true);
+                showCopyLabel();
+            });
+
+            tag.addEventListener("blur", () => {
+                setFocusHoverActive(false);
+                if (container && container._hoverPointerActive) {
+                    showCopyLabel();
+                } else {
+                    // Don't interrupt copied!/error states - let user see the feedback
+                    if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                        scheduleHoverClassRemoval(0);
+                        return;
+                    }
+                    // Otherwise force label to original when focus is lost
+                    setLabel(tag.dataset.originalLabel);
+                    scheduleHoverClassRemoval(0);
+                }
+            });
+
+            tag.addEventListener("click", (event) => {
+                event.preventDefault();
+                setFocusHoverActive(true);
+                showCopyLabel();
+                copyCodeToClipboard();
+            });
+
+            tag.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setFocusHoverActive(true);
+                    showCopyLabel();
+                    copyCodeToClipboard();
+                }
+            });
+        });
+    };
+
+    const slugifyHeadingText = (text) => {
+        return (text || "")
+            .toLowerCase()
+            .trim()
+            .replace(/["'`~!@#$%^&*()=+\[\]{}|;:\\<>,.?/]+/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+    };
+
+    const ensureElementId = (element, preferredId) => {
+        if (!element) {
+            return null;
+        }
+        let id = (element.getAttribute("id") || "").trim();
+        if (id) {
+            return id;
+        }
+        let candidate = preferredId || "section";
+        let counter = 2;
+        while (document.getElementById(candidate)) {
+            candidate = `${preferredId || "section"}-${counter++}`;
+        }
+        element.setAttribute("id", candidate);
+        return candidate;
+    };
+
+    const renderTableOfContents = (root, headings) => {
+        const toc = root.querySelector("[data-toc]");
+        if (!toc) {
+            return;
+        }
+
+        const headingItems = [];
+        // Link Introduction to the h1 header at the top of the page
+        const h1Element = document.querySelector(".container > h1");
+        const introId = h1Element ? ensureElementId(h1Element, "page-top") : null;
+        if (introId) {
+            headingItems.push({ level: 1, id: introId, label: "Introduction" });
+        }
+
+        headings.forEach((heading) => {
+            const level = parseInt((heading.tagName || "").slice(1), 10);
+            if (!heading.id || Number.isNaN(level) || level < 2 || level > 3) {
+                return;
+            }
+            let label = heading.dataset.headingLabel;
+            if (!label) {
+                label = (heading.textContent || "").trim().replace(/^#\s*/, "");
+                heading.dataset.headingLabel = label;
+            }
+            headingItems.push({ level, id: heading.id, label });
+        });
+
+        if (!headingItems.length) {
+            toc.innerHTML = "";
+            toc.classList.add("is-empty");
+            return;
+        }
+
+        toc.classList.remove("is-empty");
+        toc.innerHTML = "";
+
+        const list = document.createElement("ol");
+        list.className = "writing-toc__list";
+        toc.appendChild(list);
+
+        let currentSection = null;
+
+        headingItems.forEach((item) => {
+            if (item.level === 1) {
+                const li = document.createElement("li");
+                li.className = "writing-toc__item writing-toc__item--level-1";
+                const link = document.createElement("a");
+                link.href = `#${item.id}`;
+                link.textContent = item.label;
+                li.appendChild(link);
+                list.appendChild(li);
+                currentSection = null;
+                return;
+            }
+
+            if (item.level === 2) {
+                const li = document.createElement("li");
+                li.className = "writing-toc__item writing-toc__item--level-2";
+                const link = document.createElement("a");
+                link.href = `#${item.id}`;
+                link.textContent = item.label;
+                li.appendChild(link);
+                list.appendChild(li);
+                currentSection = li;
+                return;
+            }
+
+            if (item.level === 3) {
+                if (!currentSection) {
+                    const fallback = document.createElement("li");
+                    fallback.className = "writing-toc__item writing-toc__item--level-2";
+                    const fallbackLink = document.createElement("a");
+                    fallbackLink.href = `#${item.id}`;
+                    fallbackLink.textContent = item.label;
+                    fallback.appendChild(fallbackLink);
+                    list.appendChild(fallback);
+                    currentSection = fallback;
+                    return;
+                }
+                let sublist = currentSection.querySelector("ol");
+                if (!sublist) {
+                    sublist = document.createElement("ol");
+                    sublist.className = "writing-toc__sublist";
+                    currentSection.appendChild(sublist);
+                }
+                const li = document.createElement("li");
+                li.className = "writing-toc__item writing-toc__item--level-3";
+                const link = document.createElement("a");
+                link.href = `#${item.id}`;
+                link.textContent = item.label;
+                li.appendChild(link);
+                sublist.appendChild(li);
+            }
+        });
+    };
+
+    const enhanceHeadings = (root = document) => {
+        const headings = root.querySelectorAll("h2, h3");
+        if (!headings.length) {
+            renderTableOfContents(root, headings);
+            return;
+        }
+
+        const existingIds = new Set(Array.from(document.querySelectorAll("[id]")).map((el) => el.id));
+
+        headings.forEach((heading) => {
+            let headingLabel = heading.dataset.headingLabel;
+            if (!headingLabel) {
+                headingLabel = (heading.textContent || "section").trim().replace(/^#\s*/, "");
+                heading.dataset.headingLabel = headingLabel;
+            }
+
+            if (heading.dataset.headingEnhanced === "true") {
+                return;
+            }
+
+            const currentId = (heading.getAttribute("id") || "").trim();
+            let id = currentId;
+            if (!id) {
+                const baseSlug = slugifyHeadingText(headingLabel) || "section";
+                let candidate = baseSlug;
+                let counter = 2;
+                while (existingIds.has(candidate)) {
+                    candidate = `${baseSlug}-${counter++}`;
+                }
+                id = candidate;
+                heading.setAttribute("id", id);
+                existingIds.add(id);
+            }
+
+            let anchor = heading.querySelector(".heading-anchor");
+            if (!anchor) {
+                anchor = document.createElement("a");
+                anchor.className = "heading-anchor";
+                anchor.href = `#${id}`;
+                anchor.setAttribute("aria-label", `Link to section: ${headingLabel}`);
+                anchor.textContent = "#";
+
+                // Find the last text node and wrap the last word + anchor together
+                const textNodes = [];
+                const walk = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT, null, false);
+                let node;
+                while (node = walk.nextNode()) {
+                    if (node.textContent.trim()) {
+                        textNodes.push(node);
+                    }
+                }
+
+                if (textNodes.length > 0) {
+                    const lastTextNode = textNodes[textNodes.length - 1];
+                    const text = lastTextNode.textContent;
+                    const trimmedText = text.trimEnd();
+                    const trailingSpace = text.slice(trimmedText.length);
+
+                    // Find the last word
+                    const lastSpaceIndex = trimmedText.lastIndexOf(' ');
+                    const beforeLastWord = trimmedText.slice(0, lastSpaceIndex + 1);
+                    const lastWord = trimmedText.slice(lastSpaceIndex + 1);
+
+                    if (lastWord) {
+                        // Create a non-breaking wrapper for last word + anchor
+                        const wrapper = document.createElement("span");
+                        wrapper.style.whiteSpace = "nowrap";
+                        wrapper.textContent = lastWord;
+                        wrapper.appendChild(anchor);
+
+                        // Replace the last text node
+                        lastTextNode.textContent = beforeLastWord + trailingSpace;
+                        lastTextNode.parentNode.insertBefore(wrapper, lastTextNode.nextSibling);
+                    } else {
+                        heading.appendChild(anchor);
+                    }
+                } else {
+                    heading.appendChild(anchor);
+                }
+            }
+
+            heading.dataset.headingEnhanced = "true";
+        });
+
+        renderTableOfContents(root, headings);
+    };
+
+    const scrollToHeadingById = (id, { animate = true } = {}) => {
+        if (!id) {
+            return false;
+        }
+        const target = document.getElementById(id);
+        if (!target) {
+            return false;
+        }
+        target.scrollIntoView({
+            behavior: animate ? "smooth" : "auto",
+            block: "start",
+            inline: "nearest"
+        });
+        return true;
+    };
+
+    let activeSelectionContainer = null;
+    let selectionPointerDown = false;
+
+    const activateSelectionContainer = (container) => {
+        if (activeSelectionContainer === container) {
+            return;
+        }
+        if (activeSelectionContainer) {
+            activeSelectionContainer.removeAttribute("data-selection-active");
+        }
+        activeSelectionContainer = container || null;
+        if (!activeSelectionContainer) {
+            document.body.removeAttribute("data-selection-lock");
+            return;
+        }
+        activeSelectionContainer.setAttribute("data-selection-active", "true");
+        document.body.setAttribute("data-selection-lock", "true");
+    };
+
+    const resetSelectionContext = () => {
+        if (activeSelectionContainer) {
+            activeSelectionContainer.removeAttribute("data-selection-active");
+            activeSelectionContainer = null;
+        }
+        document.body.removeAttribute("data-selection-lock");
+        selectionPointerDown = false;
+    };
+
+    const findSelectionContainer = (target) => {
+        if (!target || !(target instanceof Node)) {
+            return null;
+        }
+        if (target.nodeType === Node.TEXT_NODE) {
+            target = target.parentNode;
+        }
+        if (!target || !(target instanceof Element)) {
+            return null;
+        }
+
+        const sidenote = target.closest(".sidenote");
+        if (sidenote) {
+            return sidenote;
+        }
+
+        const contentSection = target.closest(".writing-post__content");
+        if (contentSection) {
+            return contentSection;
+        }
+
+        return null;
+    };
+
+    document.addEventListener("pointerdown", (event) => {
+        const container = findSelectionContainer(event.target);
+        if (container) {
+            activateSelectionContainer(container);
+            selectionPointerDown = true;
+        } else {
+            resetSelectionContext();
+        }
+    }, { capture: true });
+
+    const handlePointerRelease = () => {
+        selectionPointerDown = false;
+        if (!document.getSelection) {
+            resetSelectionContext();
+            return;
+        }
+        const selection = document.getSelection();
+        if (!selection || selection.isCollapsed) {
+            resetSelectionContext();
+        }
+    };
+
+    document.addEventListener("pointerup", handlePointerRelease);
+    document.addEventListener("pointercancel", resetSelectionContext);
+    window.addEventListener("blur", resetSelectionContext);
+
+    document.addEventListener("selectionchange", () => {
+        const selection = document.getSelection ? document.getSelection() : null;
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+            if (!selectionPointerDown) {
+                resetSelectionContext();
+            }
+            return;
+        }
+
+        const containerFromSelection =
+            findSelectionContainer(selection.anchorNode) ||
+            findSelectionContainer(selection.focusNode);
+        if (containerFromSelection) {
+            activateSelectionContainer(containerFromSelection);
+        } else if (!selectionPointerDown) {
+            resetSelectionContext();
+        }
+    });
+
+    const normalizePath = (path) => {
+        if (!path) {
+            return "/";
+        }
+        let normalized = path.split("?")[0].split("#")[0];
+        if (!normalized.startsWith("/")) {
+            normalized = `/${normalized}`;
+        }
+        if (normalized.length > 1 && normalized.endsWith("/")) {
+            normalized = normalized.slice(0, -1);
+        }
+        return normalized || "/";
+    };
+
+    const resolveRoute = (rawPath) => {
+        const path = normalizePath(rawPath);
+        if (routes[path]) {
+            return routes[path];
+        }
+        if (path.startsWith("/writing/") && path.length > "/writing/".length) {
+            const slug = path.slice("/writing/".length);
+            if (!slug) {
+                return null;
+            }
+            const sanitizedSlug = slug.replace(/\/+/g, "").replace(/\.html$/i, "");
+            if (!sanitizedSlug) {
+                return null;
+            }
+            return {
+                fragment: `_content/writing/${sanitizedSlug}.html`,
+                documentTitle: null,
+                canonicalPath: `/writing/${sanitizedSlug}.html`
+            };
+        }
+        return null;
+    };
+
+    const setHeader = (title, subtitles) => {
+        if (headerTitleEl) {
+            headerTitleEl.textContent = title || defaultHeader.title;
+            headerTitleEl.classList.add("loaded");
+        }
+        if (subtitlePrimaryEl) {
+            // subtitles can be a string, an array of variants, or undefined
+            let subtitleVariants = [];
+            if (subtitles === undefined) {
+                subtitleVariants = [defaultHeader.subtitle];
+            } else if (Array.isArray(subtitles)) {
+                subtitleVariants = subtitles.filter(s => s); // Remove empty strings
+            } else if (subtitles) {
+                subtitleVariants = [subtitles];
+            } else {
+                subtitleVariants = [defaultHeader.subtitle];
+            }
+
+            // Set the first variant as the text content
+            subtitlePrimaryEl.textContent = subtitleVariants[0] || defaultHeader.subtitle;
+
+            // Clear old data-subtitle-* attributes
+            let index = 0;
+            while (subtitlePrimaryEl.hasAttribute(`data-subtitle-${index}`)) {
+                subtitlePrimaryEl.removeAttribute(`data-subtitle-${index}`);
+                index++;
+            }
+
+            // Set new data-subtitle-* attributes for responsive behavior
+            subtitleVariants.forEach((variant, idx) => {
+                subtitlePrimaryEl.setAttribute(`data-subtitle-${idx}`, variant);
+            });
+
+            const subtitleContainer = document.querySelector(".subtitle");
+            if (subtitleContainer) {
+                subtitleContainer.classList.add("loaded");
+            }
+        }
+        // Also mark footer as loaded
+        const footer = document.querySelector("footer");
+        if (footer) {
+            footer.classList.add("loaded");
+        }
+    };
+
+    const applyHeaderFromContent = (route) => {
+        const metaSource = contentEl.querySelector("[data-page-title]");
+        if (metaSource) {
+            const title = (metaSource.getAttribute("data-page-title") || "").trim();
+
+            // Check for multiple subtitle variants (data-page-subtitle-0, data-page-subtitle-1, etc.)
+            const subtitleVariants = [];
+            let index = 0;
+            while (metaSource.hasAttribute(`data-page-subtitle-${index}`)) {
+                const variant = (metaSource.getAttribute(`data-page-subtitle-${index}`) || "").trim();
+                if (variant) {
+                    subtitleVariants.push(variant);
+                }
+                index++;
+            }
+
+            // Fall back to single data-page-subtitle attribute if no variants found
+            if (subtitleVariants.length === 0) {
+                const subtitle = (metaSource.getAttribute("data-page-subtitle") || "").trim();
+                if (subtitle) {
+                    subtitleVariants.push(subtitle);
+                }
+            }
+
+            setHeader(
+                title || defaultHeader.title,
+                subtitleVariants.length > 0 ? subtitleVariants : defaultHeader.subtitle
+            );
+            if (!route.documentTitle && title) {
+                document.title = `${title} - ${siteName}`;
+            }
+            handleAllMenus();
+            return;
+        }
+        if (route && route.heading) {
+            const { title, subtitle } = route.heading;
+            setHeader(title, subtitle);
+            handleAllMenus();
+            return;
+        }
+        setHeader(defaultHeader.title, defaultHeader.subtitle);
+        handleAllMenus();
+    };
+
+    const setActiveNav = (path) => {
+        const normalizedPath = normalizePath(path);
+        const activeKey = normalizedPath.startsWith("/writing/") ? "/writing" : normalizedPath;
+        navLinks.forEach((link) => {
+            const href = normalizePath(link.getAttribute("href"));
+            if (href === activeKey) {
+                link.classList.add("active");
+            } else {
+                link.classList.remove("active");
+            }
+        });
+    };
+
+    const loadRoute = async (targetPath, pushState = true) => {
+        const normalizedPath = normalizePath(targetPath);
+        const route = resolveRoute(normalizedPath);
+        if (!route || !route.fragment) {
+            console.error(`No route found for path: ${normalizedPath}`);
+            contentEl.innerHTML = "<p>Page not found.</p>";
+            document.title = `Not Found - ${siteName}`;
+            setHeader(defaultHeader.title, defaultHeader.subtitle);
+            return null;
+        }
+
+        const canonicalPath = route.canonicalPath || normalizedPath;
+        const fragmentPath = route.fragment.startsWith("/") ? route.fragment : `/${route.fragment}`;
+
+        try {
+            const response = await fetch(fragmentPath);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const html = await response.text();
+            contentEl.style.opacity = "0";
+            await delay(150);
+            contentEl.innerHTML = html;
+            resetSelectionContext();
+            enhanceCodeBlocks(contentEl);
+            enhanceHeadings(contentEl);
+            applyHeaderFromContent(route);
+            if (route.documentTitle) {
+                document.title = route.documentTitle;
+            }
+            setActiveNav(canonicalPath);
+            if (pushState) {
+                history.pushState({ path: canonicalPath, hash: null }, document.title, canonicalPath);
+                window.scrollTo(0, 0);
+            }
+            contentEl.style.opacity = "1";
+            return canonicalPath;
+        } catch (error) {
+            console.error("Error loading content:", error);
+            contentEl.innerHTML = `<p>Error loading page: ${error.message}</p>`;
+            document.title = `Error - ${siteName}`;
+            setHeader(defaultHeader.title, defaultHeader.subtitle);
+            contentEl.style.opacity = "1";
+            return null;
+        }
+    };
+
+    navLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const href = link.getAttribute("href");
+            const path = normalizePath(href);
+            if (path === normalizePath(window.location.pathname)) {
+                return;
+            }
+            loadRoute(path);
+        });
+    });
+
+    const getCurrentCanonicalPath = () => normalizePath(window.location.pathname);
+
+    contentEl.addEventListener("click", (event) => {
+        const anchor = event.target.closest("a");
+        if (!anchor) {
+            return;
+        }
+        if (anchor.target && anchor.target !== "_self") {
+            return;
+        }
+        if (anchor.hasAttribute("download") || anchor.getAttribute("rel") === "external") {
+            return;
+        }
+        const href = anchor.getAttribute("href");
+        if (!href) {
+            return;
+        }
+
+        if (href.startsWith("#")) {
+            const targetId = href.slice(1);
+            if (!targetId) {
+                return;
+            }
+            event.preventDefault();
+            const canonicalPath = getCurrentCanonicalPath();
+            history.pushState({ path: canonicalPath, hash: targetId }, document.title, `${window.location.pathname}#${targetId}`);
+            scrollToHeadingById(targetId, { animate: true });
+            return;
+        }
+
+        const url = new URL(anchor.href, window.location.origin);
+        if (url.origin !== window.location.origin) {
+            return;
+        }
+        const path = normalizePath(url.pathname);
+        const route = resolveRoute(path);
+        if (!route) {
+            return;
+        }
+        event.preventDefault();
+        const hash = url.hash ? url.hash.slice(1) : null;
+        loadRoute(path).then((canonicalPath) => {
+            if (hash) {
+                const finalPath = canonicalPath || path;
+                history.replaceState({ path: finalPath, hash }, document.title, `${finalPath}#${hash}`);
+                scrollToHeadingById(hash, { animate: true });
+            }
+        });
+    });
+
+    window.addEventListener("popstate", (event) => {
+        const currentPath = getCurrentCanonicalPath();
+        const targetPath = event.state && event.state.path ? event.state.path : currentPath;
+        const targetHash = event.state && typeof event.state.hash === "string" ? event.state.hash : (window.location.hash ? window.location.hash.slice(1) : null);
+
+        if (targetPath === currentPath) {
+            if (targetHash) {
+                scrollToHeadingById(targetHash, { animate: true });
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+            return;
+        }
+
+        loadRoute(targetPath, false).then(() => {
+            if (targetHash) {
+                requestAnimationFrame(() => {
+                    scrollToHeadingById(targetHash, { animate: true });
+                });
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        });
+    });
+
+    window.addEventListener("hashchange", () => {
+        const hash = window.location.hash ? window.location.hash.slice(1) : null;
+        if (hash) {
+            requestAnimationFrame(() => {
+                scrollToHeadingById(hash, { animate: true });
+            });
+        } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    });
+
+    const initialPath = normalizePath(window.location.pathname);
+    const initialRoute = resolveRoute(initialPath);
+    if (!initialRoute) {
+        setActiveNav("/");
+        history.replaceState({ path: "/", hash: null }, siteName, "/");
+        return;
+    }
+
+    const initialHash = window.location.hash ? window.location.hash.slice(1) : null;
+    loadRoute(initialPath, false).then((canonicalPath) => {
+        const pathForState = canonicalPath || normalizePath(initialPath);
+        history.replaceState({ path: pathForState, hash: initialHash }, document.title, initialHash ? `${pathForState}#${initialHash}` : pathForState);
+        if (initialHash) {
+            requestAnimationFrame(() => {
+                scrollToHeadingById(initialHash, { animate: false });
+            });
+        }
+    });
+});
