@@ -1013,6 +1013,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 history.pushState({ path: canonicalPath, hash: null }, document.title, canonicalPath);
                 window.scrollTo(0, 0);
             }
+            currentLoadedPath = canonicalPath;
             contentEl.style.opacity = "1";
             return canonicalPath;
         } catch (error) {
@@ -1037,6 +1038,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    let currentLoadedPath = null;
     const getCurrentCanonicalPath = () => normalizePath(window.location.pathname);
 
     contentEl.addEventListener("click", (event) => {
@@ -1088,11 +1090,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     window.addEventListener("popstate", (event) => {
-        const currentPath = getCurrentCanonicalPath();
-        const targetPath = event.state && event.state.path ? event.state.path : currentPath;
+        const targetPath = event.state && event.state.path ? event.state.path : getCurrentCanonicalPath();
         const targetHash = event.state && typeof event.state.hash === "string" ? event.state.hash : (window.location.hash ? window.location.hash.slice(1) : null);
 
-        if (targetPath === currentPath) {
+        if (targetPath === currentLoadedPath) {
             if (targetHash) {
                 scrollToHeadingById(targetHash, { animate: true });
             } else {
@@ -1126,8 +1127,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const initialPath = normalizePath(window.location.pathname);
     const initialRoute = resolveRoute(initialPath);
     if (!initialRoute) {
-        setActiveNav("/");
-        history.replaceState({ path: "/", hash: null }, siteName, "/");
+        loadRoute("/", false).then(() => {
+            history.replaceState({ path: "/", hash: null }, siteName, "/");
+        });
         return;
     }
 
