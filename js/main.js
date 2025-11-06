@@ -410,6 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 tag._labelAnimation = null;
                 tag._pendingLabel = null;
+                tag.style.transition = "";
                 tag.style.opacity = "1";
             };
 
@@ -431,6 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (immediate) {
                     clearLabelAnimation();
                     applyLabel();
+                    tag.style.transition = "";
                     tag.style.opacity = "1";
                     return;
                 }
@@ -441,9 +443,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 const fadeOutDuration = 120;
                 const fadeInDuration = 220;
 
+                tag.style.transition = "opacity 0.12s ease";
                 tag.style.opacity = "0";
                 const fadeOutTimer = setTimeout(() => {
                     applyLabel();
+                    tag.style.transition = "opacity 0.22s ease";
                     tag.style.opacity = "1";
                     const fadeInTimer = setTimeout(() => {
                         clearLabelAnimation();
@@ -490,6 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const handleCopyFailure = () => {
                 tag.dataset.state = "error";
                 setLabel("error");
+                tag.blur();
                 if (tag._copyTimer) {
                     clearTimeout(tag._copyTimer);
                 }
@@ -499,6 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const handleCopySuccess = () => {
                 tag.dataset.state = "copied";
                 setLabel("copied!");
+                tag.blur();
                 if (tag._copyTimer) {
                     clearTimeout(tag._copyTimer);
                 }

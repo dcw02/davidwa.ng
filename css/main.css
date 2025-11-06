@@ -625,7 +625,6 @@ article.writing-post .code-block pre code {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
-    transition: opacity 0.22s ease;
 }
 
 .code-block__custom-scrollbar {
