@@ -1,6 +1,6 @@
 :root {
     --font-family: "Iosevka Web", monospace;
-    --line-height: 1.6rem;
+    --line-height: 1.6;
 
     --background-color: rgb(18, 18, 18);
     --primary-text-color: rgb(224, 224, 224);
@@ -109,7 +109,7 @@ article.writing-post h3 {
     margin: 0 0 1.5rem;
     padding: 0;
     font-size: 0.8rem;
-    line-height: 1.3rem;
+    line-height: 1.3;
     color: var(--secondary-text-color);
     user-select: none;
     -webkit-user-select: none;
@@ -174,10 +174,10 @@ article.writing-post h3 {
 }
 
 .sidenote-number {
-    font-size: 0.75rem;
+    font-size: 0.75em;
     line-height: 1;
     vertical-align: super;
-    margin-left: 0.2rem;
+    margin-left: 0.2em;
     color: var(--secondary-text-color);
     cursor: pointer;
     transition: color 0.2s ease;
@@ -198,7 +198,7 @@ article.writing-post h3 {
     padding: 0 2ch;
     color: var(--secondary-text-color);
     font-size: 1rem;
-    line-height: 1.6rem;
+    line-height: 1.6;
 }
 
 .sidenote__marker {
@@ -254,7 +254,7 @@ article.writing-post h3 {
         overflow-y: auto;
         margin: 0;
         font-size: 0.75rem;
-        line-height: 1.25rem;
+        line-height: 1.25;
         color: var(--secondary-text-color);
         user-select: none;
         -webkit-user-select: none;
@@ -278,13 +278,12 @@ article.writing-post h3 {
         border: 0;
         color: var(--secondary-text-color);
         font-size: 1rem;
-        line-height: 1.6rem;
+        line-height: 1.6;
     }
 
     .sidenote-number {
         cursor: default;
         pointer-events: none;
-        color: var(--secondary-text-color);
     }
 
 }
@@ -327,7 +326,7 @@ p, i, a, li, tr, th, td, caption {
     font-size: 1rem;
     font-weight: 400;
     font-stretch: expanded;
-    line-height: 1.6rem;
+    line-height: 1.6;
 }
 
 p, i, a {
@@ -401,7 +400,7 @@ figcaption {
 table, tr, th, td {
     color: var(--primary-text-color);
     border: 1px solid;
-    padding: 0.3125rem 0.625rem;
+    padding: 0.3125em 0.625em;
     margin: auto;
 }
 
@@ -424,9 +423,9 @@ a.highlight {
     transition: color 0.3s ease, background-color 0.3s ease;
     text-decoration: underline 1px;
     text-underline-offset: 2px;
-    padding: 0 3px;
-    margin: 0 -3px;
-    border-radius: 3px;
+    padding: 0 0.2em;
+    margin: 0 -0.2em;
+    border-radius: 0.2em;
 }
 
 a.highlight:active,
@@ -548,7 +547,7 @@ footer .menu.menu--stacked {
 article.writing-post blockquote {
     margin: 2rem 0;
     padding: 0 0 0 2ch;
-    border-left: 3px solid var(--highlight-background-color);
+    border-left: 0.2em solid var(--highlight-background-color);
     color: var(--blockquote-text);
 }
 
@@ -558,10 +557,10 @@ article.writing-post blockquote p {
 }
 
 code {
-    padding: 0 3px;
-    margin: 0 -3px;
+    padding: 0 0.2em;
+    margin: 0 -0.2em;
     background-color: var(--inline-code-background);
-    border-radius: 3px;
+    border-radius: 0.2em;
     font-family: var(--font-family);
     font-size: 1em;
     color: var(--primary-text-color);
@@ -573,16 +572,18 @@ article.writing-post .code-block {
     margin: 1.5rem 0;
     padding: 0;
     background-color: var(--code-background);
-    border-radius: 3px;
+    border-radius: 0.2em;
 }
 
 article.writing-post .code-block .code-scroll {
     overflow-x: auto;
-    padding: 1rem 0;
+    padding: 1em 0;
     margin: 0;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0) transparent;
-    transition: scrollbar-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width: none;
+}
+
+article.writing-post .code-block .code-scroll::-webkit-scrollbar {
+    display: none;
 }
 
 article.writing-post .code-block pre {
@@ -599,11 +600,11 @@ article.writing-post .code-block pre code {
     min-width: 100%;
     overflow: visible;
     padding: 0;
-    border-left: 1.25rem solid transparent;
-    border-right: 1.25rem solid transparent;
+    border-left: 1.25em solid transparent;
+    border-right: 1.25em solid transparent;
     box-sizing: content-box;
     font-size: 1em;
-    line-height: 1.4rem;
+    line-height: 1.4;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -611,10 +612,10 @@ article.writing-post .code-block pre code {
 
 .code-language-tag {
     position: absolute;
-    top: 1rem;
-    right: 1.25rem;
+    top: 1em;
+    right: 1.25em;
     opacity: 1;
-    font-size: 0.75rem;
+    font-size: 0.75em;
     font-weight: 500;
     letter-spacing: 0.05em;
     color: var(--code-text-muted);
@@ -626,33 +627,52 @@ article.writing-post .code-block pre code {
     transition: opacity 0.22s ease;
 }
 
-article.writing-post .code-block .code-scroll::-webkit-scrollbar {
-    height: 3px;
+.code-block__custom-scrollbar {
+    position: absolute;
+    bottom: -0.4rem;
+    left: 0;
+    right: 0;
+    height: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-article.writing-post .code-block .code-scroll::-webkit-scrollbar-track {
+.code-block--hover .code-block__custom-scrollbar {
+    opacity: 1;
+}
+
+.code-block__scrollbar-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1rem;
     background: transparent;
 }
 
-article.writing-post .code-block .code-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0);
+.code-block__scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    height: 1rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.code-block__scrollbar-thumb::before {
+    content: '';
+    width: 100%;
+    height: 0.2rem;
+    background-color: var(--code-scrollbar);
     border-radius: 999px;
     transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-article.writing-post .code-block .code-scroll::-webkit-scrollbar-button {
-    display: none !important;
-    width: 0;
-    height: 0;
-}
-
-article.writing-post .code-block.code-block--hover .code-scroll {
-    scrollbar-color: var(--code-scrollbar-hover) transparent;
-}
-
-article.writing-post .code-block.code-block--hover .code-scroll::-webkit-scrollbar-thumb {
-    background-color: var(--code-scrollbar);
-    transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.code-block__scrollbar-thumb:hover::before {
+    background-color: var(--code-scrollbar-hover);
 }
 
 ::selection {

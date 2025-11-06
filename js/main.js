@@ -183,6 +183,105 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    const createCustomScrollbar = (container, codeScroll) => {
+        if (!container || !codeScroll) {
+            return;
+        }
+
+        // Create custom scrollbar elements
+        const customScrollbar = document.createElement('div');
+        customScrollbar.className = 'code-block__custom-scrollbar';
+
+        const track = document.createElement('div');
+        track.className = 'code-block__scrollbar-track';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'code-block__scrollbar-thumb';
+
+        track.appendChild(thumb);
+        customScrollbar.appendChild(track);
+        container.appendChild(customScrollbar);
+
+        const updateScrollbar = () => {
+            const scrollWidth = codeScroll.scrollWidth;
+            const clientWidth = codeScroll.clientWidth;
+
+            if (scrollWidth <= clientWidth) {
+                customScrollbar.style.display = 'none';
+                return;
+            }
+
+            customScrollbar.style.display = 'block';
+
+            const thumbWidth = (clientWidth / scrollWidth) * track.offsetWidth;
+            const maxScroll = scrollWidth - clientWidth;
+            const scrollRatio = codeScroll.scrollLeft / maxScroll;
+            const maxThumbPosition = track.offsetWidth - thumbWidth;
+            const thumbPosition = scrollRatio * maxThumbPosition;
+
+            thumb.style.width = `${thumbWidth}px`;
+            thumb.style.left = `${thumbPosition}px`;
+        };
+
+        // Update on scroll
+        codeScroll.addEventListener('scroll', updateScrollbar, { passive: true });
+
+        // Drag functionality
+        let isDragging = false;
+        let startX = 0;
+        let startScrollLeft = 0;
+
+        thumb.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startScrollLeft = codeScroll.scrollLeft;
+            thumb.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+
+        thumb.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const scrollWidth = codeScroll.scrollWidth;
+            const clientWidth = codeScroll.clientWidth;
+            const maxScroll = scrollWidth - clientWidth;
+            const maxThumbPosition = track.offsetWidth - thumb.offsetWidth;
+            const scrollDelta = (deltaX / maxThumbPosition) * maxScroll;
+
+            codeScroll.scrollLeft = startScrollLeft + scrollDelta;
+        });
+
+        thumb.addEventListener('pointerup', (e) => {
+            isDragging = false;
+            thumb.releasePointerCapture(e.pointerId);
+        });
+
+        thumb.addEventListener('pointercancel', (e) => {
+            isDragging = false;
+            thumb.releasePointerCapture(e.pointerId);
+        });
+
+        // Click on track to jump
+        track.addEventListener('click', (e) => {
+            if (e.target === thumb) return;
+
+            const rect = track.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const scrollWidth = codeScroll.scrollWidth;
+            const clientWidth = codeScroll.clientWidth;
+            const maxScroll = scrollWidth - clientWidth;
+            const scrollRatio = clickX / track.offsetWidth;
+
+            codeScroll.scrollLeft = scrollRatio * maxScroll;
+        });
+
+        // Initial update and on resize
+        updateScrollbar();
+        const resizeObserver = new ResizeObserver(updateScrollbar);
+        resizeObserver.observe(codeScroll);
+    };
+
     const enhanceCodeBlocks = (root = document) => {
         const codeBlocks = root.querySelectorAll("pre code");
 
@@ -198,6 +297,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error('Syntax highlighting unavailable:', error);
             });
         }
+
+        // Create custom scrollbars for code blocks
+        root.querySelectorAll('.code-block').forEach((container) => {
+            const codeScroll = container.querySelector('.code-scroll');
+            if (codeScroll && !container.querySelector('.code-block__custom-scrollbar')) {
+                createCustomScrollbar(container, codeScroll);
+            }
+        });
 
         const tags = root.querySelectorAll(".code-language-tag");
         tags.forEach((tag) => {
