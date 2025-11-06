@@ -547,7 +547,7 @@ footer .menu.menu--stacked {
 article.writing-post blockquote {
     margin: 2rem 0;
     padding: 0 0 0 2ch;
-    border-left: 0.2em solid var(--highlight-background-color);
+    border-left: 0.25em solid var(--highlight-background-color);
     color: var(--blockquote-text);
 }
 
@@ -573,6 +573,7 @@ article.writing-post .code-block {
     padding: 0;
     background-color: var(--code-background);
     border-radius: 0.2em;
+    overflow: hidden;
 }
 
 article.writing-post .code-block .code-scroll {
