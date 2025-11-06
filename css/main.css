@@ -53,7 +53,8 @@ h1 {
     font-size: 2.5rem;
     font-weight: 300;
     font-stretch: normal;
-    margin: 4.5rem 0 -1rem;
+    margin: 3rem 0 -1rem;
+    scroll-margin-top: 4.5rem;
 }
 
 .container > h1,
@@ -75,7 +76,7 @@ h2 {
     font-weight: 300;
     margin: 2rem 0 1rem 0;
     position: relative;
-    scroll-margin-top: 1.5rem;
+    scroll-margin-top: 2rem;
     clear: both;
 }
 
@@ -246,10 +247,10 @@ article.writing-post h3 {
 
     .writing-toc {
         position: sticky;
-        top: var(--writing-toc-sticky-top, 0);
+        top: var(--writing-toc-sticky-top, 0.8rem);
         align-self: flex-start;
         max-width: 30ch;
-        max-height: calc(100vh - var(--writing-toc-sticky-top, 0px) - 2rem);
+        max-height: calc(100vh - var(--writing-toc-sticky-top, 0.8rem) - 2rem);
         overflow-y: auto;
         margin: 0;
         font-size: 0.75rem;
@@ -481,7 +482,7 @@ img, video {
 .container {
     width: 80ch;
     max-width: calc(100% - 2ch);
-    margin: 0 auto;
+    margin: 4.5rem auto 0;
     font-size: 1rem;
     font-stretch: expanded;
 }

@@ -552,7 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const headingItems = [];
         // Link Introduction to the h1 header at the top of the page
         const h1Element = document.querySelector(".container > h1");
-        const introId = h1Element ? ensureElementId(h1Element, "page-top") : null;
+        const introId = h1Element ? ensureElementId(h1Element, "introduction") : null;
         if (introId) {
             headingItems.push({ level: 1, id: introId, label: "Introduction" });
         }
@@ -870,7 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return {
                 fragment: `_content/writing/${sanitizedSlug}.html`,
                 documentTitle: null,
-                canonicalPath: `/writing/${sanitizedSlug}.html`
+                canonicalPath: `/writing/${sanitizedSlug}`
             };
         }
         return null;
