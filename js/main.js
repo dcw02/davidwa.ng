@@ -20,27 +20,26 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Create a measurement span if it doesn't exist
-        let measureSpan = document.getElementById("menu-measure");
-        if (!measureSpan) {
-            measureSpan = document.createElement("span");
-            measureSpan.id = "menu-measure";
-            measureSpan.style.visibility = "hidden";
-            measureSpan.style.position = "absolute";
-            measureSpan.style.whiteSpace = "nowrap";
-            const computed = window.getComputedStyle(menuEl);
-            measureSpan.style.fontSize = computed.fontSize;
-            measureSpan.style.fontFamily = computed.fontFamily;
-            measureSpan.style.fontWeight = computed.fontWeight;
-            measureSpan.style.fontStretch = computed.fontStretch;
-            document.body.appendChild(measureSpan);
-        }
+        // Create a temporary measurement span
+        const measureSpan = document.createElement("span");
+        measureSpan.style.visibility = "hidden";
+        measureSpan.style.position = "absolute";
+        measureSpan.style.whiteSpace = "nowrap";
+        const computed = window.getComputedStyle(menuEl);
+        measureSpan.style.fontSize = computed.fontSize;
+        measureSpan.style.fontFamily = computed.fontFamily;
+        measureSpan.style.fontWeight = computed.fontWeight;
+        measureSpan.style.fontStretch = computed.fontStretch;
+        measureSpan.textContent = "0";
+        document.body.appendChild(measureSpan);
 
         const containerWidth = container.offsetWidth;
 
         // Calculate 1ch in pixels
-        measureSpan.textContent = "0";
         const oneChWidth = measureSpan.offsetWidth;
+
+        // Remove the measurement span immediately
+        document.body.removeChild(measureSpan);
 
         // Temporarily ensure menu is in horizontal layout for accurate measurement
         menuEl.classList.remove("menu--stacked");
