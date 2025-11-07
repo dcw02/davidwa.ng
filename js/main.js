@@ -751,6 +751,110 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    const positionSidenotes = (root = document) => {
+        const rail = root.querySelector(".writing-post__rail-right");
+        if (!rail) {
+            return;
+        }
+
+        const content = root.querySelector(".writing-post__content");
+        if (!content) {
+            return;
+        }
+
+        // Only position on desktop viewports (154ch+)
+        // Check if rail sidenotes are actually displayed
+        const testSidenote = rail.querySelector(".sidenote--rail");
+        if (testSidenote && window.getComputedStyle(testSidenote).display === "none") {
+            return;
+        }
+
+        // Get all sidenote labels in the content
+        const labels = Array.from(content.querySelectorAll("label.sidenote-number"));
+        if (!labels.length) {
+            return;
+        }
+
+        // Get content and rail positions
+        const contentRect = content.getBoundingClientRect();
+        const railRect = rail.getBoundingClientRect();
+
+        // Calculate positions for each sidenote
+        const positions = [];
+        labels.forEach((label) => {
+            const labelId = label.getAttribute("for");
+            if (!labelId) {
+                return;
+            }
+
+            const sidenote = rail.querySelector(`.sidenote--rail[data-sidenote-ref="${labelId}"]`);
+            if (!sidenote) {
+                return;
+            }
+
+            // Ignore the superscripts - just align the line boxes
+            // Find which line the label is on by looking at its parent paragraph
+            const labelParent = label.parentElement;
+            const parentRect = labelParent.getBoundingClientRect();
+            const parentStyles = window.getComputedStyle(labelParent);
+            const parentLineHeight = parseFloat(parentStyles.lineHeight);
+
+            // Get a non-superscript element position to find the actual line
+            // Use the parent paragraph's top as reference
+            const labelRect = label.getBoundingClientRect();
+            const labelOffsetInParent = labelRect.top - parentRect.top;
+
+            // Round to find which line box this is on
+            const lineIndex = Math.round(labelOffsetInParent / parentLineHeight);
+            const lineTop = lineIndex * parentLineHeight;
+
+            const relativeTop = parentRect.top - contentRect.top + lineTop;
+
+            positions.push({
+                sidenote,
+                idealTop: relativeTop,
+                height: 0  // Will be calculated after initial positioning
+            });
+        });
+
+        // Position sidenotes and handle stacking
+        positions.forEach((pos, index) => {
+            // Set initial position
+            pos.sidenote.style.top = `${pos.idealTop}px`;
+
+            // Get actual height after positioning
+            pos.height = pos.sidenote.getBoundingClientRect().height;
+
+            // Get sidenote line-height for spacing calculation (1 line of space between stacked notes)
+            const sidenoteStyles = window.getComputedStyle(pos.sidenote);
+            const sidenoteLineHeight = parseFloat(sidenoteStyles.lineHeight);
+
+            // Check for overlaps with previous sidenotes and adjust if needed
+            for (let i = 0; i < index; i++) {
+                const prev = positions[i];
+                const prevBottom = parseFloat(prev.sidenote.style.top) + prev.height;
+                const currentTop = parseFloat(pos.sidenote.style.top);
+
+                // If there's an overlap, push this sidenote down with additional spacing
+                if (currentTop < prevBottom + sidenoteLineHeight) {
+                    pos.sidenote.style.top = `${prevBottom + sidenoteLineHeight}px`;
+                    // Recalculate for next iteration
+                    pos.idealTop = prevBottom + sidenoteLineHeight;
+                }
+            }
+        });
+    };
+
+    // Debounced resize handler for sidenote positioning
+    let sidenoteResizeTimeout;
+    const debouncedSidenotePosition = () => {
+        clearTimeout(sidenoteResizeTimeout);
+        sidenoteResizeTimeout = setTimeout(() => {
+            positionSidenotes(document);
+        }, 10);
+    };
+    window.addEventListener("resize", debouncedSidenotePosition);
+
     const enhanceHeadings = (root = document) => {
         const headings = root.querySelectorAll("h2, h3");
         if (!headings.length) {
@@ -836,6 +940,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         renderTableOfContents(root, headings);
+        positionSidenotes(root);
     };
 
     const scrollToHeadingById = (id, { animate = true } = {}) => {
