@@ -20,26 +20,27 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Create a temporary measurement span
-        const measureSpan = document.createElement("span");
-        measureSpan.style.visibility = "hidden";
-        measureSpan.style.position = "absolute";
-        measureSpan.style.whiteSpace = "nowrap";
-        const computed = window.getComputedStyle(menuEl);
-        measureSpan.style.fontSize = computed.fontSize;
-        measureSpan.style.fontFamily = computed.fontFamily;
-        measureSpan.style.fontWeight = computed.fontWeight;
-        measureSpan.style.fontStretch = computed.fontStretch;
-        measureSpan.textContent = "0";
-        document.body.appendChild(measureSpan);
+        // Create a measurement span if it doesn't exist
+        let measureSpan = document.getElementById("menu-measure");
+        if (!measureSpan) {
+            measureSpan = document.createElement("span");
+            measureSpan.id = "menu-measure";
+            measureSpan.style.visibility = "hidden";
+            measureSpan.style.position = "absolute";
+            measureSpan.style.whiteSpace = "nowrap";
+            const computed = window.getComputedStyle(menuEl);
+            measureSpan.style.fontSize = computed.fontSize;
+            measureSpan.style.fontFamily = computed.fontFamily;
+            measureSpan.style.fontWeight = computed.fontWeight;
+            measureSpan.style.fontStretch = computed.fontStretch;
+            document.body.appendChild(measureSpan);
+        }
 
         const containerWidth = container.offsetWidth;
 
         // Calculate 1ch in pixels
+        measureSpan.textContent = "0";
         const oneChWidth = measureSpan.offsetWidth;
-
-        // Remove the measurement span immediately
-        document.body.removeChild(measureSpan);
 
         // Temporarily ensure menu is in horizontal layout for accurate measurement
         menuEl.classList.remove("menu--stacked");
@@ -280,6 +281,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const resizeObserver = new ResizeObserver(updateScrollbar);
         resizeObserver.observe(codeScroll);
     };
+
+    // Prevent image dragging
+    document.addEventListener("dragstart", (event) => {
+        if (event.target.tagName === "IMG") {
+            event.preventDefault();
+            return false;
+        }
+    });
 
     const enhanceCodeBlocks = (root = document) => {
         const codeBlocks = root.querySelectorAll("pre code");
@@ -1002,6 +1011,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const sidenote = target.closest(".sidenote");
         if (sidenote) {
             return sidenote;
+        }
+
+        const table = target.closest("table");
+        if (table) {
+            return table;
         }
 
         const contentSection = target.closest(".writing-post__content");

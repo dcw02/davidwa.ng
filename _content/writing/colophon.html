@@ -54,6 +54,77 @@ auto main() -> int {
             <h3>This is a Longer Subheading Example to Test Wrapping</h3>
             <p>H3 headings are italic and slightly smaller than H2 headings<label for="sn2" class="sidenote-number" data-number="4"></label><input type="checkbox" id="sn2" class="margin-toggle"><span class="sidenote sidenote--inline" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="4"></span>Both h2 and h3 headings support the anchor link feature and appear in the table of contents with proper nesting.</span>. Both levels appear in the table of contents.</p>
 
+            <h2>Tables</h2>
+            <p>Tables are centered with a maximum width of 76ch. They can be displayed with or without captions:</p>
+            <table>
+                <caption>Browser support for various CSS features</caption>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Chrome</th>
+                        <th>Firefox</th>
+                        <th>Safari</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>CSS Grid</td>
+                        <td>57+</td>
+                        <td>52+</td>
+                        <td>10.1+</td>
+                    </tr>
+                    <tr>
+                        <td>Flexbox</td>
+                        <td>29+</td>
+                        <td>28+</td>
+                        <td>9+</td>
+                    </tr>
+                    <tr>
+                        <td>Container Queries</td>
+                        <td>105+</td>
+                        <td>110+</td>
+                        <td>16+</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>Tables without captions are also supported:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>git status</code></td>
+                        <td>Show working tree status</td>
+                    </tr>
+                    <tr>
+                        <td><code>git commit</code></td>
+                        <td>Record changes to repository</td>
+                    </tr>
+                    <tr>
+                        <td><code>git push</code></td>
+                        <td>Update remote refs</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>This text appears after the table to demonstrate the 1rem bottom margin spacing.</p>
+
+            <h2>Images</h2>
+            <p>Images can be displayed with or without captions. They scale to a maximum width of 76ch and are centered on the page:</p>
+
+            <figure>
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%232c2c2c'/%3E%3C/svg%3E" alt="Example image with caption">
+                <figcaption>An example image with a caption below it</figcaption>
+            </figure>
+
+            <p>Images without captions are also supported. This one is wider than 76ch to demonstrate automatic downscaling:</p>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400'%3E%3Crect width='1200' height='400' fill='%232c2c2c'/%3E%3C/svg%3E" alt="Example wide image without caption">
+            <p>This text appears after the image to demonstrate the 1rem bottom margin spacing.</p>
+
             <h2>Future Enhancements</h2>
             <p>Eventually I'd like to add a static page generator from Markdown (or a custom format), and support for mathematical notation. But for now, this will do...</p>
         </div>
