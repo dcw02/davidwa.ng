@@ -14,6 +14,9 @@
     --code-scrollbar-hover: rgba(255, 255, 255, 0.28);
     --inline-code-background: rgba(255, 255, 255, 0.08);
     --blockquote-text: rgba(255, 255, 255, 0.88);
+    --superscript-font-size: 0.75em;
+    --superscript-line-height: 1rem;
+    --superscript-offset: -0.3rem;
 
     font-family: var(--font-family);
     font-optical-sizing: auto;
@@ -173,30 +176,51 @@ article.writing-post h3 {
     display: none;
 }
 
+
 .sidenote-number {
     line-height: 1;
-    margin-left: 0.2em;
+    margin-left: 0.1ch;
     color: var(--secondary-text-color);
     cursor: pointer;
     transition: color 0.2s ease;
     position: relative;
     display: inline-block;
+    --superscript-slot-width: 1ch;
+}
+
+.sidenote__marker {
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+    color: var(--secondary-text-color);
+    font-stretch: expanded;
+    --superscript-slot-width: 2ch;
 }
 
 .sidenote-number::before {
     content: '';
     display: inline-block;
-    width: 1ch;
+    width: var(--superscript-slot-width);
     height: 0;
 }
 
-.sidenote-number::after {
+.sidenote-number::after,
+.sidenote__marker::after {
     content: attr(data-number);
     position: absolute;
     left: 0;
-    top: -0.35em;
-    font-size: 0.75em;
-    line-height: 1;
+    top: var(--superscript-offset);
+    width: 1ch;
+    text-align: left;
+    font-size: var(--superscript-font-size);
+    line-height: var(--superscript-line-height);
+}
+
+.sidenote__marker::before {
+    content: '';
+    display: inline-block;
+    width: var(--superscript-slot-width);
+    height: 0;
 }
 
 .sidenote-number:hover,
@@ -210,7 +234,7 @@ article.writing-post h3 {
 
 .margin-toggle:checked + .sidenote--inline {
     display: block;
-    margin: 0.75rem 0 1.25rem;
+    margin: 1rem 0;
     padding: 0 2ch;
     color: var(--secondary-text-color);
     font-size: 1rem;
@@ -221,10 +245,9 @@ article.writing-post h3 {
     display: none;
 }
 
-.sidenote__marker {
-    font-size: 0.75em;
-    line-height: 1;
-    color: var(--secondary-text-color);
+.writing-post__content sup {
+    font-size: var(--superscript-font-size);
+    line-height: var(--superscript-line-height);
 }
 
 .writing-post__layout {
@@ -242,7 +265,7 @@ article.writing-post h3 {
     margin-bottom: 1.5rem;
 }
 
-@media (min-width: 154ch) {
+@media (min-width: 136ch) {
     .writing-post__layout {
         position: relative;
         max-width: 80ch;
@@ -259,7 +282,7 @@ article.writing-post h3 {
         top: 0;
         bottom: 0;
         right: calc(100% + 3ch);
-        width: 30ch;
+        width: 24ch;
         margin: 0;
         display: flex;
         justify-content: flex-end;
@@ -270,7 +293,7 @@ article.writing-post h3 {
         top: 0;
         bottom: 0;
         left: calc(100% + 3ch);
-        width: 30ch;
+        width: 24ch;
         margin: 0;
     }
 
@@ -278,7 +301,7 @@ article.writing-post h3 {
         position: sticky;
         top: var(--writing-toc-sticky-top, 0.8rem);
         align-self: flex-start;
-        max-width: 30ch;
+        max-width: 24ch;
         max-height: calc(100vh - var(--writing-toc-sticky-top, 0.8rem) - 2rem);
         overflow-y: auto;
         margin: 0;
@@ -294,32 +317,20 @@ article.writing-post h3 {
         display: none;
     }
 
+    .margin-toggle:checked + .sidenote--inline {
+        display: none;
+    }
+
     .sidenote--rail {
         display: block;
         position: absolute;
-        width: 30ch;
+        max-width: 24ch;
         margin: 0;
         padding: 0;
         border: 0;
         color: var(--secondary-text-color);
         font-size: 1rem;
         line-height: 1.6;
-    }
-
-    .sidenote--rail::before {
-        content: '';
-        display: inline-block;
-        width: 2ch;
-        height: 0;
-        position: relative;
-    }
-
-    .sidenote--rail .sidenote__marker {
-        position: absolute;
-        left: 0;
-        top: 0;
-        font-size: 0.75em;
-        line-height: 1;
     }
 
     .sidenote-number {

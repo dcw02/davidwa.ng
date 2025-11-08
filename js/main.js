@@ -825,9 +825,10 @@ document.addEventListener("DOMContentLoaded", () => {
             // Get actual height after positioning
             pos.height = pos.sidenote.getBoundingClientRect().height;
 
-            // Get sidenote line-height for spacing calculation (1 line of space between stacked notes)
+            // Get sidenote line-height for spacing calculation (use half-line gap between stacked notes)
             const sidenoteStyles = window.getComputedStyle(pos.sidenote);
             const sidenoteLineHeight = parseFloat(sidenoteStyles.lineHeight);
+            const stackingGap = sidenoteLineHeight * 0.5;
 
             // Check for overlaps with previous sidenotes and adjust if needed
             for (let i = 0; i < index; i++) {
@@ -836,8 +837,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const currentTop = parseFloat(pos.sidenote.style.top);
 
                 // If there's an overlap, push this sidenote down with additional spacing
-                if (currentTop < prevBottom + sidenoteLineHeight) {
-                    pos.sidenote.style.top = `${prevBottom + sidenoteLineHeight}px`;
+                if (currentTop < prevBottom + stackingGap) {
+                    pos.sidenote.style.top = `${prevBottom + stackingGap}px`;
                     // Recalculate for next iteration
                     pos.idealTop = prevBottom + sidenoteLineHeight;
                 }
