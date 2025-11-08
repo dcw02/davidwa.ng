@@ -290,6 +290,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    const enhanceTables = (root = document) => {
+        const tables = root.querySelectorAll("article.writing-post table");
+        tables.forEach((table) => {
+            // Skip if already wrapped
+            if (table.parentElement && table.parentElement.classList.contains("table-wrapper")) {
+                return;
+            }
+
+            // Create wrapper structure similar to code blocks
+            const wrapper = document.createElement("div");
+            wrapper.className = "table-wrapper";
+
+            const scrollContainer = document.createElement("div");
+            scrollContainer.className = "table-scroll";
+
+            // Insert wrapper before table and move table into it
+            table.parentNode.insertBefore(wrapper, table);
+            scrollContainer.appendChild(table);
+            wrapper.appendChild(scrollContainer);
+
+            // Create custom scrollbar for the table
+            createCustomScrollbar(wrapper, scrollContainer);
+        });
+    };
+
     const enhanceCodeBlocks = (root = document) => {
         const codeBlocks = root.querySelectorAll("pre code");
 
@@ -329,6 +354,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const codeScroll = container ? container.querySelector(".code-scroll") : null;
 
             const pointerIsInside = () => {
+                // Don't trust :hover on touch devices during/after touch
+                if (container && container._touchActive !== undefined && !container._touchActive) {
+                    return false;
+                }
                 return hoverTarget ? hoverTarget.matches(":hover") : false;
             };
 
@@ -577,23 +606,55 @@ document.addEventListener("DOMContentLoaded", () => {
                 scheduleHoverClassRemoval(0);
             };
 
+            const handleTouchStart = () => {
+                if (container) {
+                    container._touchActive = true;
+                }
+                setPointerHoverActive(true);
+                showCopyLabel();
+            };
+
+            const handleTouchEnd = () => {
+                if (container) {
+                    container._touchActive = false;
+                }
+                setPointerHoverActive(false);
+                // Don't interrupt copied!/error states - let user see the feedback
+                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                    scheduleHoverClassRemoval(0);
+                    return;
+                }
+                // Force label to original and remove hover class
+                setLabel(tag.dataset.originalLabel);
+                scheduleHoverClassRemoval(0);
+            };
+
             if (hoverTarget) {
                 hoverTarget.addEventListener("mouseenter", handleHoverStart);
                 hoverTarget.addEventListener("mouseleave", handleHoverEnd);
-                hoverTarget.addEventListener("touchstart", handleHoverStart, { passive: true });
-                hoverTarget.addEventListener("touchend", handleHoverEnd);
-                hoverTarget.addEventListener("touchcancel", handleHoverEnd);
+                hoverTarget.addEventListener("touchstart", handleTouchStart, { passive: true });
+                hoverTarget.addEventListener("touchend", handleTouchEnd);
+                hoverTarget.addEventListener("touchcancel", handleTouchEnd);
             }
 
             if (codeScroll) {
                 codeScroll.addEventListener("scroll", () => {
+                    // Keep scrollbar visible while scrolling
+                    ensureHoverClass(0);
+
+                    // Only update label state if not in a touch interaction
+                    if (container && container._touchActive) {
+                        // During touch scrolling, keep current state
+                        return;
+                    }
+
                     const pointerWithin = pointerIsInside();
                     if (pointerWithin) {
                         setPointerHoverActive(true);
-                        ensureHoverClass(0); // Show immediately when scrolling while hovering
                         showCopyLabel();
                     } else if (!(container && container._hoverFocusActive)) {
-                        scheduleHoverClassRemoval(0);
+                        // Schedule removal but keep visible briefly for momentum scrolling
+                        scheduleHoverClassRemoval(600);
                     }
                 }, { passive: true });
             }
@@ -1234,6 +1295,7 @@ document.addEventListener("DOMContentLoaded", () => {
             await delay(150);
             contentEl.innerHTML = html;
             resetSelectionContext();
+            enhanceTables(contentEl);
             enhanceCodeBlocks(contentEl);
             enhanceHeadings(contentEl);
             applyHeaderFromContent(route);
