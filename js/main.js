@@ -621,12 +621,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 setPointerHoverActive(false);
                 // Don't interrupt copied!/error states - let user see the feedback
                 if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
-                    scheduleHoverClassRemoval(0);
                     return;
                 }
-                // Force label to original and remove hover class
+                // Force label to original but don't hide scrollbar yet
+                // (momentum scrolling might still be happening)
                 setLabel(tag.dataset.originalLabel);
-                scheduleHoverClassRemoval(0);
             };
 
             if (hoverTarget) {
@@ -642,6 +641,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Keep scrollbar visible while scrolling
                     ensureHoverClass(0);
 
+                    // Clear any existing scroll end timer
+                    if (container && container._scrollEndTimer) {
+                        clearTimeout(container._scrollEndTimer);
+                    }
+
                     // Only update label state if not in a touch interaction
                     if (container && container._touchActive) {
                         // During touch scrolling, keep current state
@@ -653,8 +657,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         setPointerHoverActive(true);
                         showCopyLabel();
                     } else if (!(container && container._hoverFocusActive)) {
-                        // Schedule removal but keep visible briefly for momentum scrolling
-                        scheduleHoverClassRemoval(600);
+                        // Detect when scrolling (including momentum) has ended
+                        if (container) {
+                            container._scrollEndTimer = setTimeout(() => {
+                                // Scrolling has stopped, hide scrollbar
+                                scheduleHoverClassRemoval(300);
+                                container._scrollEndTimer = null;
+                            }, 150);
+                        }
                     }
                 }, { passive: true });
             }
