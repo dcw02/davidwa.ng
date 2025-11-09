@@ -9,6 +9,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const headerTitleEl = document.querySelector(".container > h1");
     const subtitlePrimaryEl = document.querySelector(".subtitle > span:first-child");
 
+    const collectSubtitleVariants = (element) => {
+        if (!element) {
+            return [];
+        }
+        const variants = [];
+        let index = 0;
+        while (element.hasAttribute(`data-subtitle-${index}`)) {
+            const value = (element.getAttribute(`data-subtitle-${index}`) || "").trim();
+            if (value) {
+                variants.push(value);
+            }
+            index++;
+        }
+        if (!variants.length) {
+            const fallbackText = (element.textContent || "").trim();
+            if (fallbackText) {
+                variants.push(fallbackText);
+            }
+        }
+        return variants;
+    };
+
     // Generic menu responsive handler
     const handleResponsiveMenu = (menuEl) => {
         if (!menuEl) {
@@ -125,9 +147,12 @@ document.addEventListener("DOMContentLoaded", () => {
     handleAllMenus();
     window.addEventListener("resize", debouncedMenuHandler);
 
+    const defaultSubtitleVariants = collectSubtitleVariants(subtitlePrimaryEl);
+
     const defaultHeader = {
         title: headerTitleEl ? headerTitleEl.textContent.trim() : siteName,
-        subtitle: subtitlePrimaryEl ? subtitlePrimaryEl.textContent.trim() : ""
+        subtitle: subtitlePrimaryEl ? subtitlePrimaryEl.textContent.trim() : "",
+        subtitleVariants: defaultSubtitleVariants
     };
 
     const routes = {
@@ -1258,26 +1283,35 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     };
 
+    const getFallbackSubtitleVariants = () => {
+        if (defaultHeader.subtitleVariants && defaultHeader.subtitleVariants.length > 0) {
+            return [...defaultHeader.subtitleVariants];
+        }
+        const fallback = (defaultHeader.subtitle || "").trim();
+        return fallback ? [fallback] : [];
+    };
+
+    const normalizeSubtitleVariants = (value) => {
+        if (Array.isArray(value)) {
+            const normalized = value.map((variant) => (variant || "").trim()).filter(Boolean);
+            return normalized.length ? normalized : getFallbackSubtitleVariants();
+        }
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            return trimmed ? [trimmed] : getFallbackSubtitleVariants();
+        }
+        return getFallbackSubtitleVariants();
+    };
+
     const setHeader = (title, subtitles) => {
         if (headerTitleEl) {
             headerTitleEl.textContent = title || defaultHeader.title;
             headerTitleEl.classList.add("loaded");
         }
         if (subtitlePrimaryEl) {
-            // subtitles can be a string, an array of variants, or undefined
-            let subtitleVariants = [];
-            if (subtitles === undefined) {
-                subtitleVariants = [defaultHeader.subtitle];
-            } else if (Array.isArray(subtitles)) {
-                subtitleVariants = subtitles.filter(s => s); // Remove empty strings
-            } else if (subtitles) {
-                subtitleVariants = [subtitles];
-            } else {
-                subtitleVariants = [defaultHeader.subtitle];
-            }
-
-            // Set the first variant as the text content
-            subtitlePrimaryEl.textContent = subtitleVariants[0] || defaultHeader.subtitle;
+            const subtitleVariants = normalizeSubtitleVariants(subtitles);
+            const firstVariant = subtitleVariants[0] || defaultHeader.subtitle || "";
+            subtitlePrimaryEl.textContent = firstVariant;
 
             // Clear old data-subtitle-* attributes
             let index = 0;
@@ -1329,7 +1363,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             setHeader(
                 title || defaultHeader.title,
-                subtitleVariants.length > 0 ? subtitleVariants : defaultHeader.subtitle
+                subtitleVariants.length > 0 ? subtitleVariants : defaultHeader.subtitleVariants
             );
             if (!route.documentTitle && title) {
                 document.title = `${title} - ${siteName}`;
@@ -1343,7 +1377,7 @@ document.addEventListener("DOMContentLoaded", () => {
             handleAllMenus();
             return;
         }
-        setHeader(defaultHeader.title, defaultHeader.subtitle);
+        setHeader(defaultHeader.title, defaultHeader.subtitleVariants);
         handleAllMenus();
     };
 
@@ -1367,7 +1401,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error(`No route found for path: ${normalizedPath}`);
             contentEl.innerHTML = "<p>Page not found.</p>";
             document.title = `Not Found - ${siteName}`;
-            setHeader(defaultHeader.title, defaultHeader.subtitle);
+            setHeader(defaultHeader.title, defaultHeader.subtitleVariants);
             return null;
         }
 
@@ -1404,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error loading content:", error);
             contentEl.innerHTML = `<p>Error loading page: ${error.message}</p>`;
             document.title = `Error - ${siteName}`;
-            setHeader(defaultHeader.title, defaultHeader.subtitle);
+            setHeader(defaultHeader.title, defaultHeader.subtitleVariants);
             contentEl.style.opacity = "1";
             return null;
         }
