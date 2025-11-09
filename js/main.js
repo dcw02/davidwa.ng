@@ -165,15 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
             // Load CSS
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
-            link.integrity = 'sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV';
+            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css';
+            link.integrity = 'sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi';
             link.crossOrigin = 'anonymous';
             document.head.appendChild(link);
 
             // Load JS
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
-            script.integrity = 'sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8';
+            script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js';
+            script.integrity = 'sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ';
             script.crossOrigin = 'anonymous';
             script.onload = () => {
                 katexLoaded = true;
@@ -380,7 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (typeof katex !== 'undefined') {
                         katex.render(latex, element, {
                             displayMode: displayMode,
-                            throwOnError: false
+                            throwOnError: false,
+                            output: "html"
                         });
                         element.dataset.rendered = "true";
                     }
