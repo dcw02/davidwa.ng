@@ -8,6 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const navLinks = Array.from(document.querySelectorAll(".subtitle .menu a.item"));
     const headerTitleEl = document.querySelector(".container > h1");
     const subtitlePrimaryEl = document.querySelector(".subtitle > span:first-child");
+    const subtitleContainerEl = subtitlePrimaryEl ? subtitlePrimaryEl.closest(".subtitle") : null;
+    const footerEl = document.querySelector("footer");
+
+    const runtimeState = {
+        menuMeasureSpan: null,
+        highlightPromise: null,
+        katexPromise: null
+    };
 
     const collectSubtitleVariants = (element) => {
         if (!element) {
@@ -31,6 +39,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return variants;
     };
 
+    const getMenuMeasureSpan = (menuEl) => {
+        if (!menuEl) {
+            return null;
+        }
+        if (!runtimeState.menuMeasureSpan) {
+            const span = document.createElement("span");
+            span.id = "menu-measure";
+            span.style.visibility = "hidden";
+            span.style.position = "absolute";
+            span.style.whiteSpace = "nowrap";
+            document.body.appendChild(span);
+            runtimeState.menuMeasureSpan = span;
+        }
+        const measureSpan = runtimeState.menuMeasureSpan;
+        const computed = window.getComputedStyle(menuEl);
+        measureSpan.style.fontSize = computed.fontSize;
+        measureSpan.style.fontFamily = computed.fontFamily;
+        measureSpan.style.fontWeight = computed.fontWeight;
+        measureSpan.style.fontStretch = computed.fontStretch;
+        return measureSpan;
+    };
+
+    const resolveLineHeight = (styles) => {
+        const raw = parseFloat(styles.lineHeight);
+        if (Number.isFinite(raw)) {
+            return raw;
+        }
+        const fallback = parseFloat(styles.fontSize);
+        return Number.isFinite(fallback) ? fallback * 1.2 : 16;
+    };
+
     // Generic menu responsive handler
     const handleResponsiveMenu = (menuEl) => {
         if (!menuEl) {
@@ -42,20 +81,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Create a measurement span if it doesn't exist
-        let measureSpan = document.getElementById("menu-measure");
+        const measureSpan = getMenuMeasureSpan(menuEl);
         if (!measureSpan) {
-            measureSpan = document.createElement("span");
-            measureSpan.id = "menu-measure";
-            measureSpan.style.visibility = "hidden";
-            measureSpan.style.position = "absolute";
-            measureSpan.style.whiteSpace = "nowrap";
-            const computed = window.getComputedStyle(menuEl);
-            measureSpan.style.fontSize = computed.fontSize;
-            measureSpan.style.fontFamily = computed.fontFamily;
-            measureSpan.style.fontWeight = computed.fontWeight;
-            measureSpan.style.fontStretch = computed.fontStretch;
-            document.body.appendChild(measureSpan);
+            return;
         }
 
         const containerWidth = container.offsetWidth;
@@ -164,94 +192,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    let hljsLoaded = false;
-    let hljsLoading = false;
-    let katexLoaded = false;
-    let katexLoading = false;
+    const appendStylesheet = (href, attributes = {}) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (value !== undefined) {
+                link[key] = value;
+            }
+        });
+        document.head.appendChild(link);
+        return link;
+    };
 
-    const loadKaTeX = () => {
+    const appendScript = (src, attributes = {}) => {
         return new Promise((resolve, reject) => {
-            if (katexLoaded) {
-                resolve();
-                return;
-            }
-            if (katexLoading) {
-                const checkInterval = setInterval(() => {
-                    if (katexLoaded) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 50);
-                return;
-            }
-
-            katexLoading = true;
-
-            // Load CSS
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css';
-            link.integrity = 'sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi';
-            link.crossOrigin = 'anonymous';
-            document.head.appendChild(link);
-
-            // Load JS
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js';
-            script.integrity = 'sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ';
-            script.crossOrigin = 'anonymous';
-            script.onload = () => {
-                katexLoaded = true;
-                katexLoading = false;
-                resolve();
-            };
-            script.onerror = () => {
-                katexLoading = false;
-                reject(new Error('Failed to load KaTeX'));
-            };
+            script.src = src;
+            Object.entries(attributes).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    script[key] = value;
+                }
+            });
+            script.onload = () => resolve(script);
+            script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
             document.body.appendChild(script);
         });
     };
 
-    const loadHighlightJS = () => {
-        return new Promise((resolve, reject) => {
-            if (hljsLoaded) {
+    const loadKaTeX = () => {
+        if (runtimeState.katexPromise) {
+            return runtimeState.katexPromise;
+        }
+        runtimeState.katexPromise = new Promise((resolve, reject) => {
+            if (window.katex) {
                 resolve();
                 return;
             }
-            if (hljsLoading) {
-                // Wait for existing load to complete
-                const checkInterval = setInterval(() => {
-                    if (hljsLoaded) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 50);
-                return;
-            }
-
-            hljsLoading = true;
-
-            // Load CSS
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/@catppuccin/highlightjs@1.0.1/css/catppuccin-mocha.css';
-            document.head.appendChild(link);
-
-            // Load JS
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js';
-            script.onload = () => {
-                hljsLoaded = true;
-                hljsLoading = false;
+            appendStylesheet('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css', {
+                integrity: 'sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi',
+                crossOrigin: 'anonymous'
+            });
+            appendScript('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js', {
+                integrity: 'sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ',
+                crossOrigin: 'anonymous'
+            }).then(() => {
                 resolve();
-            };
-            script.onerror = () => {
-                hljsLoading = false;
-                reject(new Error('Failed to load Highlight.js'));
-            };
-            document.body.appendChild(script);
+            }).catch((error) => {
+                runtimeState.katexPromise = null;
+                reject(error);
+            });
         });
+        return runtimeState.katexPromise;
+    };
+
+    const loadHighlightJS = () => {
+        if (runtimeState.highlightPromise) {
+            return runtimeState.highlightPromise;
+        }
+        runtimeState.highlightPromise = new Promise((resolve, reject) => {
+            if (window.hljs) {
+                resolve();
+                return;
+            }
+            appendStylesheet('https://unpkg.com/@catppuccin/highlightjs@1.0.1/css/catppuccin-mocha.css');
+            appendScript('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js').then(() => {
+                resolve();
+            }).catch((error) => {
+                runtimeState.highlightPromise = null;
+                reject(error);
+            });
+        });
+        return runtimeState.highlightPromise;
     };
 
     const createCustomScrollbar = (container, codeScroll) => {
@@ -362,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const enhanceTables = (root = document) => {
-        const tables = root.querySelectorAll("article.writing-post table");
+        const tables = root.querySelectorAll(".writing-post table");
         tables.forEach((table) => {
             // Skip if already wrapped
             if (table.parentElement && table.parentElement.classList.contains("table-wrapper")) {
@@ -846,9 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const headingItems = [];
-        // Link Introduction to the h1 header at the top of the page
-        const h1Element = document.querySelector(".container > h1");
-        const introId = h1Element ? ensureElementId(h1Element, "introduction") : null;
+        const introId = headerTitleEl ? ensureElementId(headerTitleEl, "introduction") : null;
         if (introId) {
             headingItems.push({ level: 1, id: introId, label: "Introduction" });
         }
@@ -959,9 +969,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Get content and rail positions
+        // Get content position for relative offsets
         const contentRect = content.getBoundingClientRect();
-        const railRect = rail.getBoundingClientRect();
 
         // Calculate positions for each sidenote
         const positions = [];
@@ -979,9 +988,12 @@ document.addEventListener("DOMContentLoaded", () => {
             // Ignore the superscripts - just align the line boxes
             // Find which line the label is on by looking at its parent paragraph
             const labelParent = label.parentElement;
+            if (!labelParent) {
+                return;
+            }
             const parentRect = labelParent.getBoundingClientRect();
             const parentStyles = window.getComputedStyle(labelParent);
-            const parentLineHeight = parseFloat(parentStyles.lineHeight);
+            const parentLineHeight = resolveLineHeight(parentStyles);
 
             // Get a non-superscript element position to find the actual line
             // Use the parent paragraph's top as reference
@@ -1011,20 +1023,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Get sidenote line-height for spacing calculation (use half-line gap between stacked notes)
             const sidenoteStyles = window.getComputedStyle(pos.sidenote);
-            const sidenoteLineHeight = parseFloat(sidenoteStyles.lineHeight);
+            const sidenoteLineHeight = resolveLineHeight(sidenoteStyles);
             const stackingGap = sidenoteLineHeight * 0.5;
 
             // Check for overlaps with previous sidenotes and adjust if needed
             for (let i = 0; i < index; i++) {
                 const prev = positions[i];
-                const prevBottom = parseFloat(prev.sidenote.style.top) + prev.height;
-                const currentTop = parseFloat(pos.sidenote.style.top);
+                const prevTop = parseFloat(prev.sidenote.style.top) || 0;
+                const prevBottom = prevTop + prev.height;
+                let currentTop = parseFloat(pos.sidenote.style.top) || 0;
 
                 // If there's an overlap, push this sidenote down with additional spacing
                 if (currentTop < prevBottom + stackingGap) {
-                    pos.sidenote.style.top = `${prevBottom + stackingGap}px`;
-                    // Recalculate for next iteration
-                    pos.idealTop = prevBottom + sidenoteLineHeight;
+                    const adjustedTop = prevBottom + stackingGap;
+                    pos.sidenote.style.top = `${adjustedTop}px`;
+                    pos.idealTop = adjustedTop;
                 }
             }
         });
@@ -1325,15 +1338,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 subtitlePrimaryEl.setAttribute(`data-subtitle-${idx}`, variant);
             });
 
-            const subtitleContainer = document.querySelector(".subtitle");
-            if (subtitleContainer) {
-                subtitleContainer.classList.add("loaded");
+            if (subtitleContainerEl) {
+                subtitleContainerEl.classList.add("loaded");
             }
         }
-        // Also mark footer as loaded
-        const footer = document.querySelector("footer");
-        if (footer) {
-            footer.classList.add("loaded");
+        if (footerEl) {
+            footerEl.classList.add("loaded");
         }
     };
 
