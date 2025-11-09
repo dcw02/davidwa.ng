@@ -1,3 +1,5 @@
+@import url('../fonts/libertinus_math/libertinus.min.css');
+
 :root {
     --font-family: "Iosevka Web", monospace;
     --line-height: 1.6;
@@ -27,7 +29,7 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+*, *::before, *::after {
     box-sizing: border-box;
     scrollbar-width: thin;
     scrollbar-color: var(--background-color) var(--background-color);
@@ -47,8 +49,13 @@ html::-webkit-scrollbar {
     display: none;
 }
 
-h1, h2, h3, p, i, a, li {
+body {
+    margin: 0;
+    background: var(--background-color);
     color: var(--primary-text-color);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 400;
 }
 
 h1 {
@@ -93,15 +100,15 @@ h3 {
     clear: both;
 }
 
-article.writing-post h2,
-article.writing-post h3 {
+.writing-post h2,
+.writing-post h3 {
     padding-left: 1.5ch;
     margin-left: -1.5ch;
 }
 
 @media (max-width: 84ch) {
-    article.writing-post h2,
-    article.writing-post h3 {
+    .writing-post h2,
+    .writing-post h3 {
         padding-left: 0;
         margin-left: 0;
     }
@@ -113,12 +120,9 @@ article.writing-post h3 {
     font-size: 1rem;
     line-height: 1.3;
     color: var(--secondary-text-color);
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
 }
 
-.writing-toc * {
+:where(.writing-toc, .writing-toc *) {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -174,7 +178,6 @@ article.writing-post h3 {
 .margin-toggle {
     display: none;
 }
-
 
 .sidenote-number {
     line-height: 1;
@@ -404,11 +407,6 @@ p, i, a {
     margin: 0 0 1.5rem;
 }
 
-p.signature {
-    text-align: right;
-    margin: 2.25rem 0;
-}
-
 footer {
     margin: 3rem 0 1.5rem;
 }
@@ -452,7 +450,7 @@ li + li {
         max-width: 76ch;
     }
 
-    article.writing-post .table-wrapper {
+    .writing-post .table-wrapper {
         max-width: 76ch;
     }
 
@@ -461,8 +459,8 @@ li + li {
     }
 }
 
-article.writing-post h2:hover .heading-anchor,
-article.writing-post h3:hover .heading-anchor,
+.writing-post h2:hover .heading-anchor,
+.writing-post h3:hover .heading-anchor,
 .heading-anchor:focus-visible {
     opacity: 1;
     color: var(--secondary-text-color);
@@ -495,7 +493,7 @@ figcaption {
     text-align: left;
 }
 
-article.writing-post .table-wrapper {
+.writing-post .table-wrapper {
     position: relative;
     width: 100%;
     max-width: 100%;
@@ -503,16 +501,16 @@ article.writing-post .table-wrapper {
     overflow: hidden;
 }
 
-article.writing-post .table-scroll {
+.writing-post .table-scroll {
     overflow-x: auto;
     scrollbar-width: none;
 }
 
-article.writing-post .table-scroll::-webkit-scrollbar {
+.writing-post .table-scroll::-webkit-scrollbar {
     display: none;
 }
 
-article.writing-post table {
+.writing-post table {
     max-width: 100%;
     margin: 0 auto;
     display: table;
@@ -544,6 +542,7 @@ img:not(figure img) {
 }
 
 a {
+    color: var(--primary-text-color);
     position: relative;
     text-decoration: underline 1px;
     text-underline-offset: 0.15em;
@@ -551,8 +550,6 @@ a {
 
 a.highlight {
     transition: color 0.3s ease, background-color 0.3s ease;
-    text-decoration: underline 1px;
-    text-underline-offset: 0.15em;
     padding: 0 0.2em;
     margin: 0 -0.2em;
     border-radius: 0.2em;
@@ -622,11 +619,8 @@ img, video {
     font-stretch: expanded;
 }
 
-.subtitle, .subheading {
-    color: var(--secondary-text-color);
-}
-
 .subtitle {
+    color: var(--secondary-text-color);
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -647,6 +641,12 @@ img, video {
     font-size: 1rem;
 }
 
+.menu.menu--stacked {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
 .subtitle .menu {
     display: inline-grid;
     grid-auto-flow: column;
@@ -657,23 +657,7 @@ img, video {
 }
 
 .subtitle .menu.menu--stacked {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
     margin: 0 !important;
-}
-
-footer.menu.menu--stacked,
-footer .menu.menu--stacked {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-}
-
-.subheading {
-    margin: 1.5rem 0 -1.5rem;
 }
 
 .emdash-box {
@@ -682,14 +666,14 @@ footer .menu.menu--stacked {
     clip-path: inset(0 0.1ch 0 0.1ch);
 }
 
-article.writing-post blockquote {
+.writing-post blockquote {
     margin: 2rem 0;
     padding: 0 0 0 2ch;
     border-left: 0.25em solid var(--highlight-background-color);
     color: var(--blockquote-text);
 }
 
-article.writing-post blockquote p {
+.writing-post blockquote p {
     margin: 0;
     font-style: italic;
 }
@@ -707,7 +691,7 @@ code {
     box-decoration-break: clone;
 }
 
-article.writing-post .code-block {
+.writing-post .code-block {
     position: relative;
     margin: 1.5rem 0;
     padding: 0;
@@ -716,18 +700,18 @@ article.writing-post .code-block {
     overflow: hidden;
 }
 
-article.writing-post .code-block .code-scroll {
+.writing-post .code-block .code-scroll {
     overflow-x: auto;
     padding: 1em 0;
     margin: 0;
     scrollbar-width: none;
 }
 
-article.writing-post .code-block .code-scroll::-webkit-scrollbar {
+.writing-post .code-block .code-scroll::-webkit-scrollbar {
     display: none;
 }
 
-article.writing-post .code-block pre {
+.writing-post .code-block pre {
     margin: 0;
     padding: 0;
     background: transparent;
@@ -735,7 +719,7 @@ article.writing-post .code-block pre {
     overflow: visible;
 }
 
-article.writing-post .code-block pre code {
+.writing-post .code-block pre code {
     background: transparent;
     display: inline-block;
     min-width: 100%;
@@ -814,8 +798,6 @@ article.writing-post .code-block pre code {
 .code-block__scrollbar-thumb:hover::before {
     background-color: var(--code-scrollbar-hover);
 }
-
-@import url('../fonts/libertinus_math/libertinus.min.css');
 
 .math-inline {
     display: inline;
