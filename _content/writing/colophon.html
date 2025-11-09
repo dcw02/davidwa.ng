@@ -125,8 +125,24 @@ auto main() -> int {
             <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400'%3E%3Crect width='1200' height='400' fill='%232c2c2c'/%3E%3C/svg%3E" alt="Example wide image without caption">
             <p>This text appears after the image to demonstrate the 1rem bottom margin spacing.</p>
 
+            <h2>Mathematical Notation</h2>
+            <p>KaTeX is lazy-loaded via <code>js/main.js</code> whenever a fragment contains <code>.math-inline</code> or <code>.math-display</code> nodes. Most essays never download the math assets, but posts like this one can still sprinkle LaTeX inline or in centered display blocks.</p>
+            <p>Inline expressions live inside <code>span.math-inline</code> elements; block equations sit inside <code>div.math-display</code> containers and pick up the same custom scrollbar treatment as code blocks if they overflow.</p>
+            <p>The demo below uses the locally hosted <code>fonts/libertinus_math/libertinus.min.css</code> bundle, so every mathematical mark is rendered with Libertinus Math without talking to a CDN.</p>
+
+            <h3>Libertinus Math</h3>
+            <p>Inline: The quadratic formula is <span class="math-inline">x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}</span>.</p>
+            <div>
+                <div class="math-display">
+                    \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
+                </div>
+                <div class="math-display">
+                    \mathbf{A} = \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix}
+                </div>
+            </div>
+
             <h2>Future Enhancements</h2>
-            <p>Eventually I'd like to add a static page generator from Markdown (or a custom format), and support for mathematical notation. But for now, this will do...</p>
+            <p>Eventually I'd like to add a static page generator from Markdown (or a custom format). But for now, this will do...</p>
         </div>
         <div class="writing-post__rail-right">
         <span class="sidenote sidenote--rail" data-sidenote-ref="sn0" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="1"></span>The # symbol appears when you hover over any heading. Click it to get a direct link to that section.</span>

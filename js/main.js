@@ -141,6 +141,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let hljsLoaded = false;
     let hljsLoading = false;
+    let katexLoaded = false;
+    let katexLoading = false;
+
+    const loadKaTeX = () => {
+        return new Promise((resolve, reject) => {
+            if (katexLoaded) {
+                resolve();
+                return;
+            }
+            if (katexLoading) {
+                const checkInterval = setInterval(() => {
+                    if (katexLoaded) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+                return;
+            }
+
+            katexLoading = true;
+
+            // Load CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+            link.integrity = 'sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV';
+            link.crossOrigin = 'anonymous';
+            document.head.appendChild(link);
+
+            // Load JS
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+            script.integrity = 'sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8';
+            script.crossOrigin = 'anonymous';
+            script.onload = () => {
+                katexLoaded = true;
+                katexLoading = false;
+                resolve();
+            };
+            script.onerror = () => {
+                katexLoading = false;
+                reject(new Error('Failed to load KaTeX'));
+            };
+            document.body.appendChild(script);
+        });
+    };
 
     const loadHighlightJS = () => {
         return new Promise((resolve, reject) => {
@@ -312,6 +358,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Create custom scrollbar for the table
             createCustomScrollbar(wrapper, scrollContainer);
+        });
+    };
+
+    const renderMath = (root = document) => {
+        const mathElements = root.querySelectorAll(".math-inline, .math-display");
+
+        if (mathElements.length === 0) {
+            return;
+        }
+
+        loadKaTeX().then(() => {
+            mathElements.forEach((element) => {
+                if (element.dataset.rendered === "true") {
+                    return;
+                }
+                const latex = element.textContent;
+                const displayMode = element.classList.contains("math-display");
+
+                try {
+                    if (typeof katex !== 'undefined') {
+                        katex.render(latex, element, {
+                            displayMode: displayMode,
+                            throwOnError: false
+                        });
+                        element.dataset.rendered = "true";
+                    }
+                } catch (error) {
+                    console.error('Error rendering math:', error);
+                }
+            });
+        }).catch((error) => {
+            console.error('KaTeX unavailable:', error);
         });
     };
 
@@ -1307,6 +1385,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetSelectionContext();
             enhanceTables(contentEl);
             enhanceCodeBlocks(contentEl);
+            renderMath(contentEl);
             enhanceHeadings(contentEl);
             applyHeaderFromContent(route);
             if (route.documentTitle) {

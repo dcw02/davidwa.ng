@@ -813,6 +813,23 @@ article.writing-post .code-block pre code {
     background-color: var(--code-scrollbar-hover);
 }
 
+@import url('../fonts/libertinus_math/libertinus.min.css');
+
+.math-inline {
+    display: inline;
+}
+
+.math-display {
+    display: block;
+    margin: 1rem 0;
+    text-align: center;
+    overflow-x: auto;
+}
+
+.katex {
+    font-family: 'Libertinus Math', serif;
+}
+
 ::selection {
     background-color: var(--highlight-background-color);
     color: var(--highlight-text-color);
