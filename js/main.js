@@ -1201,6 +1201,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return sidenote;
         }
 
+        const mathBlock = target.closest(".math-display");
+        if (mathBlock) {
+            return mathBlock;
+        }
+
         const table = target.closest("table");
         if (table) {
             return table;

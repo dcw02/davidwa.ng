@@ -370,6 +370,13 @@ body[data-selection-lock="true"] .writing-post__content[data-selection-active="t
     -moz-user-select: none;
 }
 
+body[data-selection-lock="true"] .writing-post__content[data-selection-active="true"] .math-display:not([data-selection-active="true"]),
+body[data-selection-lock="true"] .writing-post__content[data-selection-active="true"] .math-display:not([data-selection-active="true"]) * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
 body[data-selection-lock="true"] .writing-post__content[data-selection-active="true"] figure,
 body[data-selection-lock="true"] .writing-post__content[data-selection-active="true"] figure * {
     user-select: none;
