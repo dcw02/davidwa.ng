@@ -781,7 +781,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 setPointerHoverActive(false);
                 const feedbackActive = tag.dataset.state === "copied" || tag.dataset.state === "error";
                 if (!feedbackActive) {
-                    setLabel(tag.dataset.originalLabel);
                     scheduleHoverClassRemoval(350);
                 } else {
                     scheduleHoverClassRemoval();
