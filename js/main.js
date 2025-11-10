@@ -554,6 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         container._hoverRemovalTimer = null;
                         return;
                     }
+                    resetLabelIfIdle();
                     container.classList.remove("code-block--hover");
                     container._hoverRemovalTimer = null;
                 }, delay);
@@ -644,6 +645,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 }, fadeOutDuration);
 
                 tag._labelAnimation = { fadeOutTimer, fadeInTimer: null };
+            };
+
+            const resetLabelIfIdle = () => {
+                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
+                    return;
+                }
+                if (tag._currentLabel && tag._currentLabel !== tag.dataset.originalLabel) {
+                    setLabel(tag.dataset.originalLabel);
+                }
             };
 
             const copyLabel = "copy";
