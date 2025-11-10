@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const runtimeState = {
         menuMeasureSpan: null,
         highlightPromise: null,
-        katexPromise: null
+        mathjaxPromise: null
     };
 
     const collectSubtitleVariants = (element) => {
@@ -220,30 +220,56 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    const loadKaTeX = () => {
-        if (runtimeState.katexPromise) {
-            return runtimeState.katexPromise;
+    const loadMathJax = () => {
+        if (runtimeState.mathjaxPromise) {
+            return runtimeState.mathjaxPromise;
         }
-        runtimeState.katexPromise = new Promise((resolve, reject) => {
-            if (window.katex) {
+        runtimeState.mathjaxPromise = new Promise((resolve, reject) => {
+            if (window.MathJax && window.MathJax.typesetPromise) {
                 resolve();
                 return;
             }
-            appendStylesheet('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css', {
-                integrity: 'sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi',
-                crossOrigin: 'anonymous'
-            });
-            appendScript('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js', {
-                integrity: 'sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ',
-                crossOrigin: 'anonymous'
+
+            // Configure MathJax before loading
+            window.MathJax = {
+                tex: {
+                    inlineMath: [],  // No inline math support
+                    displayMath: [['\\[', '\\]']]
+                },
+                output: {
+                    font: 'mathjax-pagella'
+                },
+                options: {
+                    enableMenu: false,  // Disable right-click context menu
+                    enableExplorer: false,  // Disable expression explorer
+                    enableAssistiveMml: false,  // Disable assistive MathML
+                    enableEnrichment: false  // Disable semantic enrichment
+                },
+                startup: {
+                    typeset: false  // Don't auto-typeset on load
+                }
+            };
+
+            appendScript('https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js', {
+                async: true
             }).then(() => {
-                resolve();
+                // Wait for MathJax to be ready
+                if (window.MathJax && window.MathJax.startup) {
+                    window.MathJax.startup.promise.then(() => {
+                        resolve();
+                    }).catch((error) => {
+                        runtimeState.mathjaxPromise = null;
+                        reject(error);
+                    });
+                } else {
+                    resolve();
+                }
             }).catch((error) => {
-                runtimeState.katexPromise = null;
+                runtimeState.mathjaxPromise = null;
                 reject(error);
             });
         });
-        return runtimeState.katexPromise;
+        return runtimeState.mathjaxPromise;
     };
 
     const loadHighlightJS = () => {
@@ -399,35 +425,43 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const renderMath = (root = document) => {
-        const mathElements = root.querySelectorAll(".math-inline, .math-display");
+        const mathElements = root.querySelectorAll(".math-display");
 
         if (mathElements.length === 0) {
             return;
         }
 
-        loadKaTeX().then(() => {
+        loadMathJax().then(() => {
+            const elementsToRender = [];
+
             mathElements.forEach((element) => {
                 if (element.dataset.rendered === "true") {
                     return;
                 }
-                const latex = element.textContent;
-                const displayMode = element.classList.contains("math-display");
+                const latex = element.textContent.trim();
 
-                try {
-                    if (typeof katex !== 'undefined') {
-                        katex.render(latex, element, {
-                            displayMode: displayMode,
-                            throwOnError: false,
-                            output: "html"
-                        });
-                        element.dataset.rendered = "true";
-                    }
-                } catch (error) {
-                    console.error('Error rendering math:', error);
+                // Store original latex for re-rendering if needed
+                if (!element.dataset.latex) {
+                    element.dataset.latex = latex;
                 }
+
+                // Wrap the LaTeX content in MathJax delimiters
+                element.textContent = `\\[${latex}\\]`;
+
+                elementsToRender.push(element);
             });
+
+            if (elementsToRender.length > 0 && window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise(elementsToRender).then(() => {
+                    elementsToRender.forEach((element) => {
+                        element.dataset.rendered = "true";
+                    });
+                }).catch((error) => {
+                    console.error('Error rendering math:', error);
+                });
+            }
         }).catch((error) => {
-            console.error('KaTeX unavailable:', error);
+            console.error('MathJax unavailable:', error);
         });
     };
 

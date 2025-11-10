@@ -1,6 +1,3 @@
 [submodule "fonts/iosevka_web"]
 	path = fonts/iosevka_web
 	url = git@github.com:dcw02/iosevka_web.git
-[submodule "fonts/libertinus_math"]
-	path = fonts/libertinus_math
-	url = git@github.com:dcw02/libertinus_math.git

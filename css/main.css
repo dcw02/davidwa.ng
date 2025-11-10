@@ -1,5 +1,3 @@
-@import url('../fonts/libertinus_math/libertinus.min.css');
-
 :root {
     --font-family: "Iosevka Web", monospace;
     --line-height: 1.6;
@@ -806,19 +804,12 @@ code {
     background-color: var(--code-scrollbar-hover);
 }
 
-.math-inline {
-    display: inline;
-}
-
 .math-display {
     display: block;
-    margin: 1rem 0;
+    margin: 1.5rem 0;
     text-align: center;
     overflow-x: auto;
-}
-
-.katex {
-    font-family: 'Libertinus Math', serif;
+    font-size: 1.308em;
 }
 
 ::selection {
