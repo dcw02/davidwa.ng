@@ -779,13 +779,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     container._touchActive = false;
                 }
                 setPointerHoverActive(false);
-                // Don't interrupt copied!/error states - let user see the feedback
-                if (tag.dataset.state === "copied" || tag.dataset.state === "error") {
-                    return;
+                const feedbackActive = tag.dataset.state === "copied" || tag.dataset.state === "error";
+                if (!feedbackActive) {
+                    setLabel(tag.dataset.originalLabel);
+                    scheduleHoverClassRemoval(350);
+                } else {
+                    scheduleHoverClassRemoval();
                 }
-                // Force label to original but don't hide scrollbar yet
-                // (momentum scrolling might still be happening)
-                setLabel(tag.dataset.originalLabel);
             };
 
             if (hoverTarget) {
