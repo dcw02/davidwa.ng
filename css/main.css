@@ -78,23 +78,23 @@ h1 {
 }
 
 h2 {
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-stretch: normal;
-    font-weight: 300;
-    margin: 2rem 0 1rem 0;
+    font-weight: 400;
+    margin: 1.5rem 0 0.75rem 0;
     position: relative;
-    scroll-margin-top: 2rem;
+    scroll-margin-top: 1.5rem;
     clear: both;
 }
 
 h3 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-stretch: normal;
-    font-weight: 300;
+    font-weight: 400;
     font-style: italic;
-    margin: 1.5rem 0 0.75rem 0;
+    margin: 1.25rem 0 0.5rem 0;
     position: relative;
-    scroll-margin-top: 1.5rem;
+    scroll-margin-top: 1.25rem;
     clear: both;
 }
 
