@@ -1521,6 +1521,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return canonicalPath;
         } catch (error) {
             console.error("Error loading content:", error);
+            // If this is a writing subpage that failed to load, redirect to /writing
+            if (normalizedPath.startsWith("/writing/") && normalizedPath !== "/writing") {
+                console.log("Writing page not found, redirecting to /writing");
+                return loadRoute("/writing", pushState);
+            }
             contentEl.innerHTML = `<p>Error loading page: ${error.message}</p>`;
             document.title = `Error - ${siteName}`;
             setHeader(defaultHeader.title, defaultHeader.subtitleVariants);
