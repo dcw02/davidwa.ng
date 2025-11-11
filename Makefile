@@ -1,12 +1,13 @@
 CSSO ?= csso
 UGLIFYJS ?= uglifyjs
+PYTHON ?= python3
 
 CSS_SRC := css/main.css
 CSS_MIN := css/main.min.css
 JS_SRC  := js/main.js
 JS_MIN  := js/main.min.js
 
-.PHONY: all build css js clean
+.PHONY: all build css js clean dev
 
 all: build
 
@@ -26,3 +27,6 @@ $(JS_MIN): $(JS_SRC)
 
 clean:
 	rm -f $(CSS_MIN) $(JS_MIN)
+
+dev:
+	$(PYTHON) build/server.py
