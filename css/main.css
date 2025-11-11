@@ -672,7 +672,7 @@ img, video {
 }
 
 .writing-post blockquote {
-    margin: 2rem 0;
+    margin: 1.5rem 0;
     padding: 0 0 0 2ch;
     border-left: 0.25em solid var(--highlight-background-color);
     color: var(--blockquote-text);
