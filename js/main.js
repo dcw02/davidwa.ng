@@ -630,8 +630,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!normalized) {
                     return;
                 }
-                if (!immediate && (tag._currentLabel === normalized || tag._pendingLabel === normalized)) {
-                    return;
+
+                const currentMatches = tag._currentLabel === normalized;
+                const pendingMatches = tag._pendingLabel === normalized;
+
+                if (!immediate) {
+                    if (pendingMatches) {
+                        return;
+                    }
+                    if (currentMatches && !tag._pendingLabel) {
+                        return;
+                    }
                 }
 
                 const applyLabel = () => {
