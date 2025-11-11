@@ -10,8 +10,9 @@ Build utilities for static site generation.
 
 ## Requirements
 
-- **Node.js** - For syntax highlighting
+- **Node.js** - For syntax highlighting and math rendering
 - **highlight.js** - Install globally: `npm install -g highlight.js`
+- **mathjax-full** - Install globally: `npm install -g mathjax-full@beta`
 - **Python 3** - For the markdown generator
 
 ## Code Highlighting
@@ -40,12 +41,39 @@ Returns HTML in the format:
 </div>
 ```
 
+## Math Rendering
+
+### mathjax.js
+Node.js wrapper for MathJax v4. Reads LaTeX from stdin, outputs rendered SVG.
+
+```bash
+echo '\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}' | node build/mathjax.js
+```
+
+Returns inline SVG that can be embedded directly in HTML. No font files needed - math is rendered as vector graphics.
+
+### render_math.py
+Python wrapper that generates complete math block HTML structure.
+
+```bash
+echo '\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}' | python3 build/render_math.py
+```
+
+Returns HTML in the format:
+```html
+<div class="math-display">
+    <!-- SVG content -->
+</div>
+```
+
 ## Usage in Build Scripts
 
-Import the `highlight_code.py` module:
+Import modules as needed:
 
 ```python
 from build.highlight_code import format_code_block
+from build.render_math import format_math_block
 
-html = format_code_block("print('hello')", "python")
+code_html = format_code_block("print('hello')", "python")
+math_html = format_math_block(r"\int_0^\infty e^{-x^2} dx")
 ```

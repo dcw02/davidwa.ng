@@ -12,8 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const footerEl = document.querySelector("footer");
 
     const runtimeState = {
-        menuMeasureSpan: null,
-        mathjaxPromise: null
+        menuMeasureSpan: null
     };
 
     const collectSubtitleVariants = (element) => {
@@ -219,79 +218,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    const loadMathJax = () => {
-        if (runtimeState.mathjaxPromise) {
-            return runtimeState.mathjaxPromise;
-        }
-        runtimeState.mathjaxPromise = new Promise((resolve, reject) => {
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                resolve();
-                return;
-            }
-
-            // Configure MathJax before loading
-            window.MathJax = {
-                tex: {
-                    inlineMath: [],  // No inline math support
-                    displayMath: [['\\[', '\\]']]
-                },
-                output: {
-                    font: 'mathjax-pagella'
-                },
-                options: {
-                    enableMenu: false,  // Disable right-click context menu
-                    enableExplorer: false,  // Disable expression explorer
-                    enableEnrichment: false  // Disable semantic enrichment
-                },
-                startup: {
-                    typeset: false  // Don't auto-typeset on load
-                }
-            };
-
-            appendScript('https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js', {
-                async: true
-            }).then(() => {
-                // Wait for MathJax to be ready
-                if (window.MathJax && window.MathJax.startup) {
-                    window.MathJax.startup.promise.then(() => {
-                        resolve();
-                    }).catch((error) => {
-                        runtimeState.mathjaxPromise = null;
-                        reject(error);
-                    });
-                } else {
-                    resolve();
-                }
-            }).catch((error) => {
-                runtimeState.mathjaxPromise = null;
-                reject(error);
-            });
-        });
-        return runtimeState.mathjaxPromise;
-    };
-
-    const sanitizeMathOutput = (elements = []) => {
-        if (!elements.length) {
-            return;
-        }
-        const containers = [];
-        elements.forEach((element) => {
-            element.querySelectorAll("mjx-container").forEach((container) => {
-                containers.push(container);
-            });
-        });
-        containers.forEach((container) => {
-            const clone = container.cloneNode(true);
-            clone.removeAttribute("tabindex");
-            clone.removeAttribute("aria-label");
-            clone.removeAttribute("aria-describedby");
-            clone.querySelectorAll("[tabindex]").forEach((node) => {
-                node.removeAttribute("tabindex");
-            });
-            container.replaceWith(clone);
-        });
-    };
-
     const createCustomScrollbar = (container, codeScroll) => {
         if (!container || !codeScroll) {
             return;
@@ -421,48 +347,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Create custom scrollbar for the table
             createCustomScrollbar(wrapper, scrollContainer);
-        });
-    };
-
-    const renderMath = (root = document) => {
-        const mathElements = root.querySelectorAll(".math-display");
-
-        if (mathElements.length === 0) {
-            return;
-        }
-
-        loadMathJax().then(() => {
-            const elementsToRender = [];
-
-            mathElements.forEach((element) => {
-                if (element.dataset.rendered === "true") {
-                    return;
-                }
-                const latex = element.textContent.trim();
-
-                // Store original latex for re-rendering if needed
-                if (!element.dataset.latex) {
-                    element.dataset.latex = latex;
-                }
-
-                // Wrap the LaTeX content in MathJax delimiters
-                element.textContent = `\\[${latex}\\]`;
-
-                elementsToRender.push(element);
-            });
-
-            if (elementsToRender.length > 0 && window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise(elementsToRender).then(() => {
-                    sanitizeMathOutput(elementsToRender);
-                    elementsToRender.forEach((element) => {
-                        element.dataset.rendered = "true";
-                    });
-                }).catch((error) => {
-                    console.error('Error rendering math:', error);
-                });
-            }
-        }).catch((error) => {
-            console.error('MathJax unavailable:', error);
         });
     };
 
@@ -1469,7 +1353,6 @@ document.addEventListener("DOMContentLoaded", () => {
             resetSelectionContext();
             enhanceTables(contentEl);
             enhanceCodeBlocks(contentEl);
-            renderMath(contentEl);
             enhanceHeadings(contentEl);
             applyHeaderFromContent(route);
             if (route.documentTitle) {
