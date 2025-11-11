@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const runtimeState = {
         menuMeasureSpan: null,
-        highlightPromise: null,
         mathjaxPromise: null
     };
 
@@ -293,26 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    const loadHighlightJS = () => {
-        if (runtimeState.highlightPromise) {
-            return runtimeState.highlightPromise;
-        }
-        runtimeState.highlightPromise = new Promise((resolve, reject) => {
-            if (window.hljs) {
-                resolve();
-                return;
-            }
-            appendStylesheet('https://unpkg.com/@catppuccin/highlightjs@1.0.1/css/catppuccin-mocha.css');
-            appendScript('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js').then(() => {
-                resolve();
-            }).catch((error) => {
-                runtimeState.highlightPromise = null;
-                reject(error);
-            });
-        });
-        return runtimeState.highlightPromise;
-    };
-
     const createCustomScrollbar = (container, codeScroll) => {
         if (!container || !codeScroll) {
             return;
@@ -488,21 +467,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const enhanceCodeBlocks = (root = document) => {
-        const codeBlocks = root.querySelectorAll("pre code");
-
-        // Only load Highlight.js if there are code blocks
-        if (codeBlocks.length > 0) {
-            loadHighlightJS().then(() => {
-                codeBlocks.forEach((block) => {
-                    if (typeof hljs !== 'undefined') {
-                        hljs.highlightElement(block);
-                    }
-                });
-            }).catch((error) => {
-                console.error('Syntax highlighting unavailable:', error);
-            });
-        }
-
         // Create custom scrollbars for code blocks
         root.querySelectorAll('.code-block').forEach((container) => {
             const codeScroll = container.querySelector('.code-scroll');
