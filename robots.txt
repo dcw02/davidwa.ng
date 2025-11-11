@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /_content/
+Disallow: /content/
+Disallow: /build/
 Sitemap: https://davidwa.ng/sitemap.xml
 Crawl-delay: 1 
