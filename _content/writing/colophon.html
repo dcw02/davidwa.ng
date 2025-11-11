@@ -1,7 +1,7 @@
 <article class="writing-post" data-page-title="Colophon" data-page-subtitle-0="November 02, 2025" data-page-subtitle-1="Nov 02, 2025">
     <div class="writing-post__layout">
         <div class="writing-post__rail">
-            <nav class="writing-toc" data-toc aria-label="Table of contents"></nav>
+            <nav class="writing-toc" data-toc></nav>
         </div>
         <div class="writing-post__content" data-toc-intro>
             <p>This is a test page showcasing all the typography and design elements available on this site. There's an easter egg hidden somewhere if you look closely :)</p>
@@ -45,14 +45,14 @@ auto main() -> int {
             </blockquote>
 
             <h2>Interactive Features</h2>
-            <p>Headings automatically generate anchor links<label for="sn0" class="sidenote-number" data-number="1"></label><input type="checkbox" id="sn0" class="margin-toggle"><span class="sidenote sidenote--inline" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="1"></span>The # symbol appears when you hover over any heading. Click it to get a direct link to that section.</span> (hover over any heading to see the # symbol). The table of contents is built dynamically from h2 and h3 elements and, on wide viewports, becomes sticky in the left rail.</p>
+            <p>Headings automatically generate anchor links<label for="sn0" class="sidenote-number" data-number="1"></label><input type="checkbox" id="sn0" class="margin-toggle"><span class="sidenote sidenote--inline"><span class="sidenote__marker" data-number="1"></span>The # symbol appears when you hover over any heading. Click it to get a direct link to that section.</span> (hover over any heading to see the # symbol). The table of contents is built dynamically from h2 and h3 elements and, on wide viewports, becomes sticky in the left rail.</p>
 
             <h2>Sidenotes</h2>
-            <p>This paragraph demonstrates the sidenote system<label for="sn1" class="sidenote-number" data-number="2"></label><input type="checkbox" id="sn1" class="margin-toggle"><span class="sidenote sidenote--inline" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="2"></span>This is a sidenote. On mobile it's expandable via checkbox, on desktop it floats in the margin.</span> with multiple references<label for="sn1b" class="sidenote-number" data-number="3"></label><input type="checkbox" id="sn1b" class="margin-toggle"><span class="sidenote sidenote--inline" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="3"></span>Multiple sidenotes in the same paragraph will stack vertically with spacing between them.</span> placed on consecutive lines to test the worst-case stacking scenario.</p>
+            <p>This paragraph demonstrates the sidenote system<label for="sn1" class="sidenote-number" data-number="2"></label><input type="checkbox" id="sn1" class="margin-toggle"><span class="sidenote sidenote--inline"><span class="sidenote__marker" data-number="2"></span>This is a sidenote. On mobile it's expandable via checkbox, on desktop it floats in the margin.</span> with multiple references<label for="sn1b" class="sidenote-number" data-number="3"></label><input type="checkbox" id="sn1b" class="margin-toggle"><span class="sidenote sidenote--inline"><span class="sidenote__marker" data-number="3"></span>Multiple sidenotes in the same paragraph will stack vertically with spacing between them.</span> placed on consecutive lines to test the worst-case stacking scenario.</p>
             <p>The selection lock system ensures you can select text in the main content or sidenotes independently, preventing awkward cross-container selections.</p>
 
             <h3>This is a Longer Subheading Example to Test Wrapping</h3>
-            <p>H3 headings are italic and slightly smaller than H2 headings<label for="sn2" class="sidenote-number" data-number="4"></label><input type="checkbox" id="sn2" class="margin-toggle"><span class="sidenote sidenote--inline" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="4"></span>Both h2 and h3 headings support the anchor link feature and appear in the table of contents with proper nesting.</span>. Both levels appear in the table of contents.</p>
+            <p>H3 headings are italic and slightly smaller than H2 headings<label for="sn2" class="sidenote-number" data-number="4"></label><input type="checkbox" id="sn2" class="margin-toggle"><span class="sidenote sidenote--inline"><span class="sidenote__marker" data-number="4"></span>Both h2 and h3 headings support the anchor link feature and appear in the table of contents with proper nesting.</span>. Both levels appear in the table of contents.</p>
 
             <h2>Tables</h2>
             <p>Tables are centered with a maximum width of 76ch. They can be displayed with or without captions:</p>
@@ -155,10 +155,10 @@ auto main() -> int {
             <p>Eventually I'd like to add a static page generator from Markdown (or a custom format). But for now, this will do...</p>
         </div>
         <div class="writing-post__rail-right">
-        <span class="sidenote sidenote--rail" data-sidenote-ref="sn0" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="1"></span>The # symbol appears when you hover over any heading. Click it to get a direct link to that section.</span>
-        <span class="sidenote sidenote--rail" data-sidenote-ref="sn1" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="2"></span>This is a sidenote. On mobile it's expandable via checkbox, on desktop it floats in the margin.</span>
-        <span class="sidenote sidenote--rail" data-sidenote-ref="sn1b" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="3"></span>Multiple sidenotes in the same paragraph will stack vertically with spacing between them.</span>
-        <span class="sidenote sidenote--rail" data-sidenote-ref="sn2" role="note"><span class="sidenote__marker" aria-hidden="true" data-number="4"></span>Both h2 and h3 headings support the anchor link feature and appear in the table of contents with proper nesting.</span>
+        <span class="sidenote sidenote--rail" data-sidenote-ref="sn0"><span class="sidenote__marker" data-number="1"></span>The # symbol appears when you hover over any heading. Click it to get a direct link to that section.</span>
+        <span class="sidenote sidenote--rail" data-sidenote-ref="sn1"><span class="sidenote__marker" data-number="2"></span>This is a sidenote. On mobile it's expandable via checkbox, on desktop it floats in the margin.</span>
+        <span class="sidenote sidenote--rail" data-sidenote-ref="sn1b"><span class="sidenote__marker" data-number="3"></span>Multiple sidenotes in the same paragraph will stack vertically with spacing between them.</span>
+        <span class="sidenote sidenote--rail" data-sidenote-ref="sn2"><span class="sidenote__marker" data-number="4"></span>Both h2 and h3 headings support the anchor link feature and appear in the table of contents with proper nesting.</span>
         </div>
     </div>
 </article>

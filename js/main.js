@@ -242,7 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 options: {
                     enableMenu: false,  // Disable right-click context menu
                     enableExplorer: false,  // Disable expression explorer
-                    enableAssistiveMml: false,  // Disable assistive MathML
                     enableEnrichment: false  // Disable semantic enrichment
                 },
                 startup: {
@@ -270,6 +269,28 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
         return runtimeState.mathjaxPromise;
+    };
+
+    const sanitizeMathOutput = (elements = []) => {
+        if (!elements.length) {
+            return;
+        }
+        const containers = [];
+        elements.forEach((element) => {
+            element.querySelectorAll("mjx-container").forEach((container) => {
+                containers.push(container);
+            });
+        });
+        containers.forEach((container) => {
+            const clone = container.cloneNode(true);
+            clone.removeAttribute("tabindex");
+            clone.removeAttribute("aria-label");
+            clone.removeAttribute("aria-describedby");
+            clone.querySelectorAll("[tabindex]").forEach((node) => {
+                node.removeAttribute("tabindex");
+            });
+            container.replaceWith(clone);
+        });
     };
 
     const loadHighlightJS = () => {
@@ -453,6 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (elementsToRender.length > 0 && window.MathJax && window.MathJax.typesetPromise) {
                 window.MathJax.typesetPromise(elementsToRender).then(() => {
+                    sanitizeMathOutput(elementsToRender);
                     elementsToRender.forEach((element) => {
                         element.dataset.rendered = "true";
                     });
@@ -661,9 +683,6 @@ document.addEventListener("DOMContentLoaded", () => {
             tag.dataset.originalLabel = originalLabel;
             tag.dataset.enhanced = "true";
             setLabel(originalLabel, { immediate: true });
-            tag.setAttribute("role", "button");
-            tag.setAttribute("tabindex", "0");
-            tag.setAttribute("aria-label", `Copy ${originalLabel} to clipboard`);
 
             const resetLabel = () => {
                 tag.dataset.state = "";
@@ -1135,7 +1154,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 anchor = document.createElement("a");
                 anchor.className = "heading-anchor";
                 anchor.href = `#${id}`;
-                anchor.setAttribute("aria-label", `Link to section: ${headingLabel}`);
                 anchor.textContent = "#";
 
                 // Find the last text node and wrap the last word + anchor together
