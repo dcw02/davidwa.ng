@@ -13,7 +13,7 @@
             <p>Regular paragraph text with <a class="highlight" href="#">inline links</a> and <code>inline code</code>. Links have a subtle underline and highlight with a background color on hover.</p>
 
             <h2>Code Blocks</h2>
-            <p>Code blocks support syntax highlighting using the Catppuccin Mocha theme. Hover over a block to copy the code. Long lines trigger horizontal scrolling:</p>
+            <p>Code blocks are syntax-highlighted at build time using <a class="highlight" href="https://highlightjs.org/">highlight.js</a> with the Catppuccin Mocha theme. Hover over a block to copy the code. Long lines trigger horizontal scrolling:</p>
             <div class="code-block">
     <span class="code-language-tag">cpp</span>
     <div class="code-scroll">
@@ -126,7 +126,7 @@
             <p>This text appears after the image to demonstrate the 1rem bottom margin spacing.</p>
 
             <h2>Mathematical Notation</h2>
-            <p>MathJax v4 is lazy-loaded via <code>js/main.js</code> whenever a fragment contains <code>.math-display</code> nodes. Equations are rendered as display blocks only - inline math is intentionally not supported to maintain clean typography.</p>
+            <p>Mathematical equations are pre-rendered as static SVG at build time using <a class="highlight" href="https://www.mathjax.org/">MathJax v4</a> via <code>build/tex2svg.js</code>. Equations are rendered as display blocks only - inline math is intentionally not supported to maintain clean typography.</p>
             <p>Block equations sit inside <code>div.math-display</code> containers and pick up the same custom scrollbar treatment as code blocks if they overflow.</p>
             <p>The site uses <strong>TeX Gyre Pagella</strong> for math typography - an elegant Palatino-based font that provides nice contrast with the monospace body text.</p>
 
