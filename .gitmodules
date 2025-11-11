@@ -1,3 +1,6 @@
 [submodule "fonts/iosevka_web"]
 	path = fonts/iosevka_web
 	url = git@github.com:dcw02/iosevka_web.git
+[submodule "fonts/mathjax_pagella_web"]
+	path = fonts/mathjax_pagella_web
+	url = git@github.com:dcw02/mathjax_pagella_web.git
