@@ -5,6 +5,21 @@
 
 const { stdin, argv } = process;
 
+function parseArgs(args) {
+  return args.reduce(
+    (acc, arg) => {
+      if (acc.input == null) {
+        acc.input = arg;
+        return acc;
+      }
+      console.error(`Unexpected argument: ${arg}`);
+      process.exit(1);
+    },
+    { input: null }
+  );
+}
+const cli = parseArgs(argv.slice(2));
+
 // --- helper: read input (arg or stdin) ---
 function readStdin() {
   return new Promise((resolve) => {
@@ -15,7 +30,7 @@ function readStdin() {
   });
 }
 async function getInput() {
-  const a = argv[2];
+  const a = cli.input;
   if (a === '-') return await readStdin();
   if (a) return a;
   return String.raw`\frac{1}{1+x^2}`;
@@ -31,7 +46,7 @@ async function main() {
       require: (file) => import(file),
     },
     output: { font: 'mathjax-pagella' },
-    svg: { fontCache: 'none' }, // standalone SVGs (no <defs>/<use> cache)
+    svg: { fontCache: 'global' },
   };
 
   // Load the component startup (ESM) via dynamic import in CJS:
@@ -51,6 +66,13 @@ async function main() {
 
   // Serialize
   let svg = adaptor.outerHTML(svgNode);
+  const glyphs = adaptor
+    .childNodes(MathJax.startup.document.outputJax.fontCache.getCache())
+    .map((node) => ({
+      id: adaptor.getAttribute(node, 'id'),
+      d: adaptor.getAttribute(node, 'd'),
+    }))
+    .filter(({ id, d }) => id && d);
 
   // --- Scrub: make inline-HTML friendly and responsive ---
   const stripRootAttr = (name) => {
@@ -71,12 +93,11 @@ async function main() {
   stripGlobal(/\saria-[a-z0-9_-]+="[^"]*"/gi);
   stripGlobal(/\sdata-[a-z0-9_-]+="[^"]*"/gi);
   stripGlobal(/\sclass="[^"]*"/gi);
-  stripGlobal(/\sid="[^"]*"/gi);
 
   // Tidy spaces
   svg = svg.replace(/\s{2,}/g, ' ').replace(/\s>/g, '>');
 
-  console.log(svg);
+  console.log(JSON.stringify({ svg, glyphs }));
   MathJax.done();
 }
 
