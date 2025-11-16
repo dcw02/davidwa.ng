@@ -10,10 +10,40 @@ Build utilities for static site generation.
 
 ## Requirements
 
-- **Node.js** - For syntax highlighting and math rendering
-- **highlight.js** - Install globally: `npm install -g highlight.js`
-- **mathjax-full** - Install globally: `npm install -g mathjax-full@beta`
-- **Python 3** - For the markdown generator
+- **Node.js** (>= 18.0.0) - For all build tooling
+- **npm** - Package manager (comes with Node.js)
+- **Python 3** - For build orchestration scripts
+
+## Installation
+
+Install all build dependencies locally:
+
+```bash
+make install
+# or manually:
+cd build && npm install
+```
+
+This installs all build tools locally in `build/node_modules/`:
+- **highlight.js** - Syntax highlighting
+- **MathJax** - Math rendering (with Pagella font)
+- **CSSO** - CSS minification (produces smallest output)
+- **uglify-js** - JavaScript minification
+
+## Development Server
+
+The dev server runs in the background, freeing up your terminal. It handles SPA routing by serving `index.html` for client-side routes.
+
+### Commands
+
+**Full syntax:**
+```bash
+make dev-start              # Start server (port 8000)
+make dev-start PORT=3000    # Start on custom port
+make dev-stop               # Stop server (port 8000)
+make dev-stop PORT=3000     # Stop specific port
+make dev-status             # List all running servers
+```
 
 ## Code Highlighting
 

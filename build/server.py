@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import http.server
 import socketserver
+import sys
 from pathlib import Path
 
-PORT = 8000
+DEFAULT_PORT = 8000
 
 class SPAHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -19,6 +20,18 @@ class SPAHandler(http.server.SimpleHTTPRequestHandler):
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
-with socketserver.TCPServer(("", PORT), SPAHandler) as httpd:
-    print(f"Serving at http://localhost:{PORT}")
-    httpd.serve_forever()
+if __name__ == "__main__":
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PORT
+
+    httpd = socketserver.TCPServer(("", port), SPAHandler)
+
+    print(f"Serving at http://localhost:{port}")
+    sys.stdout.flush()
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

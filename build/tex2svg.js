@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // tex2svg.js (CommonJS)
 // MathJax v4 TeX -> clean, responsive SVG (Pagella font), no menu/a11y.
-// Requires local deps: npm i @mathjax/src @mathjax/mathjax-pagella-font
+// Requires: npm install in build/ directory
 
 const { stdin, argv } = process;
 

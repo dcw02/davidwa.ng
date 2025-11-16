@@ -2,23 +2,11 @@
 
 /**
  * Static code highlighter using highlight.js
- * Requires: npm install -g highlight.js
+ * Requires: npm install in build/ directory
  *
  * Usage: node highlight.js <language>
  * Reads code from stdin, outputs highlighted HTML to stdout
  */
-
-// Handle global npm module path
-const { execSync } = require('child_process');
-if (!process.env.NODE_PATH) {
-    try {
-        const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
-        process.env.NODE_PATH = npmRoot;
-        require('module').Module._initPaths();
-    } catch (e) {
-        // Ignore if npm not found
-    }
-}
 
 const hljs = require('highlight.js');
 

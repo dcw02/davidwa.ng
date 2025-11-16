@@ -1,0 +1,17 @@
+{
+  "name": "davidwang-build-tools",
+  "version": "1.0.0",
+  "description": "Build utilities for static site generation",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "@mathjax/src": "^4.0.0",
+    "@mathjax/mathjax-pagella-font": "^4.0.0",
+    "uglify-js": "^3.19.3",
+    "csso-cli": "^4.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
