@@ -4,6 +4,8 @@ PORT ?= 8000
 
 CSSO := build/node_modules/.bin/csso
 UGLIFYJS := build/node_modules/.bin/uglifyjs
+CONTENT_GENERATOR := build/generate_writing.py
+CONTENT_SRC := $(wildcard content/writing/*.md)
 
 CSS_SRC := css/main.css
 CSS_MIN := css/main.min.css
@@ -12,11 +14,11 @@ JS_MIN  := js/main.min.js
 NODE_MODULES := build/node_modules
 DEV_INFO_DIR := build/.dev_servers
 
-.PHONY: all build css js clean clean-all dev-start dev-stop dev-status install
+.PHONY: all build css js content clean clean-all dev-start dev-stop dev-status install
 
 all: build
 
-build: css js
+build: css js content
 
 install: $(NODE_MODULES)
 
@@ -35,6 +37,9 @@ $(CSS_MIN): $(CSS_SRC) $(NODE_MODULES)
 $(JS_MIN): $(JS_SRC) $(NODE_MODULES)
 	@mkdir -p $(dir $@)
 	$(UGLIFYJS) $< --compress --mangle --output $@
+
+content: $(CONTENT_GENERATOR) $(CONTENT_SRC)
+	@$(PYTHON) $(CONTENT_GENERATOR)
 
 clean:
 	rm -f $(CSS_MIN) $(JS_MIN)

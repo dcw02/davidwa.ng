@@ -1,3 +1,4 @@
-build/node_modules/
-build/package-lock.json
-build/.dev_servers/
+__pycache__
+node_modules
+package-lock.json
+.dev_servers

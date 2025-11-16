@@ -56,7 +56,7 @@ def math_font_cache_svg() -> str:
     )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" id="MJX-SVG-global-cache" '
-        'aria-hidden="true" focusable="false" style="display:none">'
+        'focusable="false" style="display:none">'
         f"<defs>{paths}</defs></svg>"
     )
 
