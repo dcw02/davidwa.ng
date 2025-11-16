@@ -370,6 +370,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!pre || !code) {
                 return;
             }
+            if (!tag.hasAttribute("tabindex")) {
+                tag.tabIndex = 0;
+            }
+            if (!tag.hasAttribute("role")) {
+                tag.setAttribute("role", "button");
+            }
             const hoverTarget = container || pre;
             const codeScroll = container ? container.querySelector(".code-scroll") : null;
 
