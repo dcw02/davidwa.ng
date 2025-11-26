@@ -299,15 +299,15 @@ document.addEventListener("DOMContentLoaded", () => {
         // ──────────────────────────────────────────────────────────
         // Visibility State Machine
         // States: hidden (default) | visible
-        // Sources: hover, scroll, drag (touch triggers scroll events, no separate tracking)
+        // Sources: hover, scroll, touch, drag
         // ──────────────────────────────────────────────────────────
 
-        const engagement = { hover: false, scroll: false, drag: false };
+        const engagement = { hover: false, scroll: false, touch: false, drag: false };
         let scrollEndTimer = null;
         let ignoreMouseEnter = false;
 
         const updateVisibility = () => {
-            const isVisible = engagement.hover || engagement.scroll || engagement.drag;
+            const isVisible = engagement.hover || engagement.scroll || engagement.touch || engagement.drag;
             container.classList.toggle("code-block--scrollbar-visible", isVisible);
         };
 
@@ -326,14 +326,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Touch: ignore synthetic mouseenter that follows any touch
-        // Scrollbar visibility on mobile is handled by scroll events only
         container.addEventListener("touchstart", () => {
             ignoreMouseEnter = true;
         }, { passive: true });
 
         // Scroll: show while scrolling, hide after scroll ends
+        // Touch tracking keeps scrollbar visible while finger is down after scrolling starts
+        let isTouching = false;
+
         scrollEl.addEventListener("scroll", () => {
             engagement.scroll = true;
+            if (isTouching) engagement.touch = true;
             updateVisibility();
             clearTimeout(scrollEndTimer);
             scrollEndTimer = setTimeout(() => {
@@ -341,6 +344,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateVisibility();
             }, SCROLL_END_DELAY);
         }, { passive: true });
+
+        scrollEl.addEventListener("touchstart", () => {
+            isTouching = true;
+        }, { passive: true });
+
+        scrollEl.addEventListener("touchend", () => {
+            isTouching = false;
+            engagement.touch = false;
+            updateVisibility();
+        });
+
+        scrollEl.addEventListener("touchcancel", () => {
+            isTouching = false;
+            engagement.touch = false;
+            updateVisibility();
+        });
 
         // Drag: pointerdown/pointerup on thumb (pointer capture keeps it active)
         let dragPointerId = null;
