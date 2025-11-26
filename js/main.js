@@ -326,6 +326,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Touch: touchstart/touchend on container (excluding language tag)
+        // Only show scrollbar on tap-and-hold, not quick taps
+        const TOUCH_HOLD_DELAY = 150;
+        let touchHoldTimer = null;
+
         container.addEventListener("touchstart", (e) => {
             const isOnTag = languageTag && (e.target === languageTag || languageTag.contains(e.target));
             if (isOnTag) {
@@ -333,11 +337,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 ignoreMouseEnter = true;
                 return;
             }
-            engagement.touch = true;
-            updateVisibility();
+            // Delay showing scrollbar to distinguish tap from hold
+            clearTimeout(touchHoldTimer);
+            touchHoldTimer = setTimeout(() => {
+                engagement.touch = true;
+                updateVisibility();
+            }, TOUCH_HOLD_DELAY);
         }, { passive: true });
 
         const endTouch = () => {
+            clearTimeout(touchHoldTimer);
             engagement.touch = false;
             updateVisibility();
         };
