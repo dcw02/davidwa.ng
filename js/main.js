@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const FADE_DURATION = 150;
     const DEBOUNCE_DELAY = 10;
     const COPY_FEEDBACK_DURATION = 1000;
+    const ENGAGEMENT_DELAY = 250;
 
     const ROUTES = {
         "/": { fragment: "_content/home.html", documentTitle: SITE_NAME },
@@ -85,6 +86,79 @@ document.addEventListener("DOMContentLoaded", () => {
             return document.execCommand("copy");
         } finally {
             document.body.removeChild(textarea);
+        }
+    };
+
+    // ============================================================
+    // Engagement Tracking Helpers
+    // ============================================================
+
+    const createEngagementTracker = (sources, onUpdate) => {
+        const state = Object.fromEntries(sources.map(s => [s, false]));
+        const timers = Object.fromEntries(sources.map(s => [s, null]));
+
+        const isEngaged = () => Object.values(state).some(Boolean);
+
+        const engage = (source) => {
+            clearTimeout(timers[source]);
+            state[source] = true;
+            onUpdate(isEngaged());
+        };
+
+        const disengage = (source, immediate = false) => {
+            clearTimeout(timers[source]);
+            if (immediate) {
+                state[source] = false;
+                onUpdate(isEngaged());
+            } else {
+                timers[source] = setTimeout(() => {
+                    state[source] = false;
+                    onUpdate(isEngaged());
+                }, ENGAGEMENT_DELAY);
+            }
+        };
+
+        const cancel = (source) => clearTimeout(timers[source]);
+
+        return { state, isEngaged, engage, disengage, cancel };
+    };
+
+    const setupHoverEngagement = (container, tracker, source = "hover") => {
+        let ignoreMouseEnter = false;
+
+        container.addEventListener("mouseenter", () => {
+            if (ignoreMouseEnter) { ignoreMouseEnter = false; return; }
+            tracker.engage(source);
+        });
+
+        container.addEventListener("mouseleave", () => tracker.disengage(source));
+
+        container.addEventListener("touchstart", () => {
+            ignoreMouseEnter = true;
+        }, { passive: true });
+    };
+
+    const setupScrollEngagement = (scrollEl, tracker, scrollSource = "scroll", touchSource = "touch") => {
+        let isTouching = false;
+
+        scrollEl.addEventListener("scroll", () => {
+            tracker.engage(scrollSource);
+            if (isTouching && touchSource) tracker.engage(touchSource);
+            tracker.disengage(scrollSource);
+        }, { passive: true });
+
+        if (touchSource) {
+            scrollEl.addEventListener("touchstart", () => {
+                tracker.cancel(touchSource);
+                isTouching = true;
+            }, { passive: true });
+
+            const onTouchEnd = () => {
+                isTouching = false;
+                tracker.disengage(touchSource);
+            };
+            scrollEl.addEventListener("touchend", onTouchEnd);
+            scrollEl.addEventListener("touchcancel", onTouchEnd);
         }
     };
 
@@ -259,9 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Custom Scrollbar with Visibility State Machine
     // ============================================================
 
-    const SCROLL_END_DELAY = 250;
-
-    const createCodeBlockScrollbar = (container, scrollEl, languageTag) => {
+    const createCodeBlockScrollbar = (container, scrollEl) => {
         if (!container || !scrollEl) return;
 
         // Create scrollbar elements
@@ -298,100 +370,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ──────────────────────────────────────────────────────────
         // Visibility State Machine
-        // States: hidden (default) | visible
         // Sources: hover, scroll, touch, drag
         // ──────────────────────────────────────────────────────────
 
-        const engagement = { hover: false, scroll: false, touch: false, drag: false };
-        let scrollEndTimer = null;
-        let hoverEndTimer = null;
-        let ignoreMouseEnter = false;
-
-        const updateVisibility = () => {
-            const isVisible = engagement.hover || engagement.scroll || engagement.touch || engagement.drag;
-            container.classList.toggle("code-block--scrollbar-visible", isVisible);
-        };
-
-        // Hover: mouseenter/mouseleave on container
-        container.addEventListener("mouseenter", () => {
-            if (ignoreMouseEnter) {
-                ignoreMouseEnter = false;
-                return;
-            }
-            clearTimeout(hoverEndTimer);
-            engagement.hover = true;
-            updateVisibility();
-        });
-        container.addEventListener("mouseleave", () => {
-            clearTimeout(hoverEndTimer);
-            hoverEndTimer = setTimeout(() => {
-                engagement.hover = false;
-                updateVisibility();
-            }, SCROLL_END_DELAY);
+        let isDragging = false;
+        const tracker = createEngagementTracker(["hover", "scroll", "touch"], (engaged) => {
+            container.classList.toggle("code-block--scrollbar-visible", engaged || isDragging);
         });
 
-        // Touch: ignore synthetic mouseenter that follows any touch
-        container.addEventListener("touchstart", () => {
-            ignoreMouseEnter = true;
-        }, { passive: true });
+        setupHoverEngagement(container, tracker);
+        setupScrollEngagement(scrollEl, tracker);
 
-        // Scroll: show while scrolling, hide after scroll ends
-        // Touch tracking keeps scrollbar visible while finger is down after scrolling starts
-        let isTouching = false;
-
-        scrollEl.addEventListener("scroll", () => {
-            engagement.scroll = true;
-            if (isTouching) engagement.touch = true;
-            updateVisibility();
-            clearTimeout(scrollEndTimer);
-            scrollEndTimer = setTimeout(() => {
-                engagement.scroll = false;
-                updateVisibility();
-            }, SCROLL_END_DELAY);
-        }, { passive: true });
-
-        let touchEndTimer = null;
-
-        scrollEl.addEventListener("touchstart", () => {
-            clearTimeout(touchEndTimer);
-            isTouching = true;
-        }, { passive: true });
-
-        scrollEl.addEventListener("touchend", () => {
-            isTouching = false;
-            clearTimeout(touchEndTimer);
-            touchEndTimer = setTimeout(() => {
-                engagement.touch = false;
-                updateVisibility();
-            }, SCROLL_END_DELAY);
-        });
-
-        scrollEl.addEventListener("touchcancel", () => {
-            isTouching = false;
-            clearTimeout(touchEndTimer);
-            touchEndTimer = setTimeout(() => {
-                engagement.touch = false;
-                updateVisibility();
-            }, SCROLL_END_DELAY);
-        });
-
-        // Drag: pointerdown/pointerup on thumb (pointer capture keeps it active)
+        // Drag: pointerdown/pointerup on thumb (immediate, no delay)
         let dragPointerId = null;
 
         thumb.addEventListener("pointerdown", (e) => {
-            engagement.drag = true;
+            isDragging = true;
             dragPointerId = e.pointerId;
             thumb.setPointerCapture(e.pointerId);
-            updateVisibility();
+            container.classList.add("code-block--scrollbar-visible");
             e.preventDefault();
         });
 
         const endDrag = (e) => {
             if (e.pointerId !== dragPointerId) return;
-            engagement.drag = false;
+            isDragging = false;
             dragPointerId = null;
             thumb.releasePointerCapture(e.pointerId);
-            updateVisibility();
+            if (!tracker.isEngaged()) {
+                container.classList.remove("code-block--scrollbar-visible");
+            }
         };
         thumb.addEventListener("pointerup", endDrag);
         thumb.addEventListener("pointercancel", endDrag);
@@ -409,7 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         thumb.addEventListener("pointermove", (e) => {
-            if (!engagement.drag) return;
+            if (!isDragging) return;
             const deltaX = e.clientX - startX;
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
             const maxThumbPos = track.offsetWidth - thumb.offsetWidth;
@@ -441,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Create scrollbar with visibility state machine
             if (codeScroll) {
-                createCodeBlockScrollbar(container, codeScroll, languageTag);
+                createCodeBlockScrollbar(container, codeScroll);
             }
 
             // Set up language tag state machine
@@ -470,32 +478,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // ──────────────────────────────────────────────────────────
 
         let state = "idle"; // idle | ready | copied | error
-        const engagement = { hover: false, scroll: false, touch: false };
-        let ignoreMouseEnter = false;
         let labelTimer = null;
         let feedbackTimer = null;
-        let scrollEndTimer = null;
-        let hoverEndTimer = null;
 
-        const isEngaged = () => engagement.hover || engagement.scroll || engagement.touch;
-
-        // ──────────────────────────────────────────────────────────
-        // Label updates
-        // ──────────────────────────────────────────────────────────
-
-        const labelForState = (s) => {
-            switch (s) {
-                case "idle": return originalLabel;
-                case "ready": return "copy";
-                case "copied": return "copied!";
-                case "error": return "error";
-                default: return originalLabel;
-            }
-        };
+        const labels = { idle: originalLabel, ready: "copy", copied: "copied!", error: "error" };
 
         const setLabel = (label) => {
             clearTimeout(labelTimer);
-            // If already showing this label, just ensure it's visible
             if (tag.textContent.toLowerCase() === label) {
                 tag.style.opacity = "1";
                 return;
@@ -512,13 +501,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const setState = (newState) => {
             if (state === newState) return;
             state = newState;
-            setLabel(labelForState(newState));
+            setLabel(labels[newState] || originalLabel);
         };
 
-        const updateFromEngagement = () => {
+        // ──────────────────────────────────────────────────────────
+        // Engagement tracking
+        // ──────────────────────────────────────────────────────────
+
+        const updateFromEngagement = (engaged) => {
             if (state === "copied" || state === "error") return;
-            setState(isEngaged() ? "ready" : "idle");
+            setState(engaged ? "ready" : "idle");
         };
+
+        const tracker = createEngagementTracker(["hover", "scroll", "touch"], updateFromEngagement);
+        setupHoverEngagement(container, tracker);
+        if (scrollEl) setupScrollEngagement(scrollEl, tracker);
 
         // ──────────────────────────────────────────────────────────
         // Copy action
@@ -526,10 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const doCopy = async () => {
             const text = code.innerText || code.textContent || "";
-            if (!text) {
-                handleCopyResult(false);
-                return;
-            }
+            if (!text) return handleCopyResult(false);
             try {
                 handleCopyResult(await copyToClipboard(text));
             } catch (e) {
@@ -542,79 +536,9 @@ document.addEventListener("DOMContentLoaded", () => {
             clearTimeout(feedbackTimer);
             setState(success ? "copied" : "error");
             feedbackTimer = setTimeout(() => {
-                setState(isEngaged() ? "ready" : "idle");
+                setState(tracker.isEngaged() ? "ready" : "idle");
             }, COPY_FEEDBACK_DURATION);
         };
-
-        // ──────────────────────────────────────────────────────────
-        // Event handlers
-        // ──────────────────────────────────────────────────────────
-
-        // Hover on container (desktop)
-        container.addEventListener("mouseenter", () => {
-            if (ignoreMouseEnter) {
-                ignoreMouseEnter = false;
-                return;
-            }
-            clearTimeout(hoverEndTimer);
-            engagement.hover = true;
-            updateFromEngagement();
-        });
-        container.addEventListener("mouseleave", () => {
-            clearTimeout(hoverEndTimer);
-            hoverEndTimer = setTimeout(() => {
-                engagement.hover = false;
-                updateFromEngagement();
-            }, SCROLL_END_DELAY);
-        });
-
-        // Scroll: show "copy" while scrolling (mobile)
-        // Touch tracking keeps "copy" visible while finger is down after scrolling starts
-        if (scrollEl) {
-            let isTouching = false;
-
-            scrollEl.addEventListener("scroll", () => {
-                engagement.scroll = true;
-                // Enable touch engagement once scrolling starts
-                if (isTouching) engagement.touch = true;
-                updateFromEngagement();
-                clearTimeout(scrollEndTimer);
-                scrollEndTimer = setTimeout(() => {
-                    engagement.scroll = false;
-                    updateFromEngagement();
-                }, SCROLL_END_DELAY);
-            }, { passive: true });
-
-            let touchEndTimer = null;
-
-            scrollEl.addEventListener("touchstart", () => {
-                clearTimeout(touchEndTimer);
-                isTouching = true;
-            }, { passive: true });
-
-            scrollEl.addEventListener("touchend", () => {
-                isTouching = false;
-                clearTimeout(touchEndTimer);
-                touchEndTimer = setTimeout(() => {
-                    engagement.touch = false;
-                    updateFromEngagement();
-                }, SCROLL_END_DELAY);
-            });
-
-            scrollEl.addEventListener("touchcancel", () => {
-                isTouching = false;
-                clearTimeout(touchEndTimer);
-                touchEndTimer = setTimeout(() => {
-                    engagement.touch = false;
-                    updateFromEngagement();
-                }, SCROLL_END_DELAY);
-            });
-        }
-
-        // Touch: ignore synthetic mouseenter
-        container.addEventListener("touchstart", () => {
-            ignoreMouseEnter = true;
-        }, { passive: true });
 
         // Tap on tag: copy immediately (mobile)
         tag.addEventListener("touchend", (e) => {
