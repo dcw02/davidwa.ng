@@ -424,42 +424,50 @@ document.addEventListener("DOMContentLoaded", () => {
                 createCodeBlockScrollbar(container, codeScroll, languageTag);
             }
 
-            // Set up copy button on language tag (decoupled from scrollbar)
+            // Set up language tag state machine (decoupled from scrollbar)
             if (languageTag && code) {
-                setupCopyButton(languageTag, code);
+                setupLanguageTag(languageTag, container, code);
             }
         });
     };
 
     // ============================================================
-    // Copy Button (Language Tag)
+    // Language Tag State Machine
     // ============================================================
+    // States: idle | ready | copied | error
+    // Engagement sources: hover, touch, focus
+    // Labels: idle → language, ready → "copy", copied → "copied!", error → "error"
 
-    const setupCopyButton = (tag, code) => {
-        if (tag.dataset.copyEnabled === "true") return;
-        tag.dataset.copyEnabled = "true";
+    const setupLanguageTag = (tag, container, code) => {
+        if (tag.dataset.enhanced === "true") return;
+        tag.dataset.enhanced = "true";
 
         tag.tabIndex = tag.tabIndex ?? 0;
         tag.setAttribute("role", "button");
 
         const originalLabel = (tag.textContent || "code").trim().toLowerCase();
-        tag.dataset.originalLabel = originalLabel;
 
+        // ──────────────────────────────────────────────────────────
+        // State
+        // ──────────────────────────────────────────────────────────
+
+        let state = "idle"; // idle | ready | copied | error
+        const engagement = { hover: false, touch: false, focus: false };
         let feedbackTimer = null;
         let labelTimer = null;
+        let ignoreMouseEnter = false;
 
-        const setLabel = (label, immediate = false) => {
+        const isEngaged = () => engagement.hover || engagement.touch || engagement.focus;
+
+        // ──────────────────────────────────────────────────────────
+        // Label updates
+        // ──────────────────────────────────────────────────────────
+
+        const setLabel = (label) => {
             const normalized = (label || "").toLowerCase();
             if (!normalized || tag.textContent.toLowerCase() === normalized) return;
 
             clearTimeout(labelTimer);
-            if (immediate) {
-                tag.textContent = normalized;
-                tag.style.transition = "";
-                tag.style.opacity = "1";
-                return;
-            }
-
             tag.style.transition = "opacity 0.12s ease";
             tag.style.opacity = "0";
             labelTimer = setTimeout(() => {
@@ -469,15 +477,48 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 120);
         };
 
+        const labelForState = (s) => {
+            switch (s) {
+                case "idle": return originalLabel;
+                case "ready": return "copy";
+                case "copied": return "copied!";
+                case "error": return "error";
+                default: return originalLabel;
+            }
+        };
+
+        // ──────────────────────────────────────────────────────────
+        // State transitions
+        // ──────────────────────────────────────────────────────────
+
+        const setState = (newState) => {
+            if (state === newState) return;
+            state = newState;
+            tag.dataset.state = newState;
+            setLabel(labelForState(newState));
+        };
+
+        const updateFromEngagement = () => {
+            // Only idle <-> ready transitions respond to engagement
+            if (state === "copied" || state === "error") return;
+            setState(isEngaged() ? "ready" : "idle");
+        };
+
         const handleCopyResult = (success) => {
             clearTimeout(feedbackTimer);
-            tag.dataset.state = success ? "copied" : "error";
-            setLabel(success ? "copied!" : "error");
+            setState(success ? "copied" : "error");
+            // Blur to clear focus engagement (click focuses the tag)
+            tag.blur();
+            engagement.focus = false;
             feedbackTimer = setTimeout(() => {
-                tag.dataset.state = "";
-                setLabel(originalLabel);
+                // After feedback, check engagement to decide next state
+                setState(isEngaged() ? "ready" : "idle");
             }, COPY_FEEDBACK_DURATION);
         };
+
+        // ──────────────────────────────────────────────────────────
+        // Copy action
+        // ──────────────────────────────────────────────────────────
 
         const doCopy = async () => {
             const text = code.innerText || code.textContent || "";
@@ -493,6 +534,58 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
+        // ──────────────────────────────────────────────────────────
+        // Event handlers
+        // ──────────────────────────────────────────────────────────
+
+        // Hover (on container, not tag)
+        container.addEventListener("mouseenter", () => {
+            if (ignoreMouseEnter) {
+                ignoreMouseEnter = false;
+                return;
+            }
+            engagement.hover = true;
+            updateFromEngagement();
+        });
+        container.addEventListener("mouseleave", () => {
+            engagement.hover = false;
+            updateFromEngagement();
+        });
+
+        // Touch (on tag only - tapping tag to copy)
+        tag.addEventListener("touchstart", () => {
+            ignoreMouseEnter = true; // Suppress synthetic mouseenter
+            engagement.touch = true;
+            updateFromEngagement();
+        }, { passive: true });
+
+        tag.addEventListener("touchend", (e) => {
+            engagement.touch = false;
+            // Trigger copy on touch release (tap to copy)
+            if (state === "ready") {
+                e.preventDefault(); // Prevent click from also firing
+                doCopy();
+            } else {
+                updateFromEngagement();
+            }
+        });
+
+        tag.addEventListener("touchcancel", () => {
+            engagement.touch = false;
+            updateFromEngagement();
+        });
+
+        // Focus (keyboard navigation)
+        tag.addEventListener("focus", () => {
+            engagement.focus = true;
+            updateFromEngagement();
+        });
+        tag.addEventListener("blur", () => {
+            engagement.focus = false;
+            updateFromEngagement();
+        });
+
+        // Click (mouse) and keyboard
         tag.addEventListener("click", (e) => {
             e.preventDefault();
             doCopy();
