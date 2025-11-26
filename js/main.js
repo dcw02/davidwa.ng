@@ -411,7 +411,75 @@ document.addEventListener("DOMContentLoaded", () => {
                 createCodeBlockScrollbar(container, codeScroll, languageTag);
             }
 
+            // Set up language tag state machine
+            if (languageTag && code) {
+                setupLanguageTag(languageTag, container, code);
+            }
         });
+    };
+
+    // ============================================================
+    // Language Tag State Machine
+    // ============================================================
+    // States: idle | ready
+    // Engagement sources: hover, touch
+    // Labels: idle → language, ready → "copy"
+
+    const setupLanguageTag = (tag, container, code) => {
+        if (tag.dataset.enhanced === "true") return;
+        tag.dataset.enhanced = "true";
+
+        const originalLabel = (tag.textContent || "code").trim().toLowerCase();
+
+        // ──────────────────────────────────────────────────────────
+        // State
+        // ──────────────────────────────────────────────────────────
+
+        const engagement = { hover: false, touch: false };
+        let ignoreMouseEnter = false;
+
+        const isEngaged = () => engagement.hover || engagement.touch;
+
+        let labelTimer = null;
+
+        const setLabel = (label) => {
+            if (tag.textContent.toLowerCase() === label) return;
+            clearTimeout(labelTimer);
+            tag.style.transition = "opacity 0.12s ease";
+            tag.style.opacity = "0";
+            labelTimer = setTimeout(() => {
+                tag.textContent = label;
+                tag.style.transition = "opacity 0.22s ease";
+                tag.style.opacity = "1";
+            }, 120);
+        };
+
+        const updateLabel = () => {
+            setLabel(isEngaged() ? "copy" : originalLabel);
+        };
+
+        // ──────────────────────────────────────────────────────────
+        // Event handlers
+        // ──────────────────────────────────────────────────────────
+
+        // Hover on container
+        container.addEventListener("mouseenter", () => {
+            if (ignoreMouseEnter) {
+                ignoreMouseEnter = false;
+                return;
+            }
+            engagement.hover = true;
+            updateLabel();
+        });
+        container.addEventListener("mouseleave", () => {
+            engagement.hover = false;
+            updateLabel();
+        });
+
+        // Touch: ignore synthetic mouseenter (no touch engagement on mobile)
+        container.addEventListener("touchstart", () => {
+            ignoreMouseEnter = true;
+        }, { passive: true });
     };
 
     // ============================================================
