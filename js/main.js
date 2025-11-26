@@ -552,18 +552,41 @@ document.addEventListener("DOMContentLoaded", () => {
             updateFromEngagement();
         });
 
-        // Touch (on tag only - tapping tag to copy)
+        // Touch on container (shows "copy", like hover)
+        container.addEventListener("touchstart", (e) => {
+            const isOnTag = e.target === tag || tag.contains(e.target);
+            if (isOnTag) return; // Let tag handle its own touch
+            ignoreMouseEnter = true;
+            engagement.touch = true;
+            updateFromEngagement();
+        }, { passive: true });
+
+        container.addEventListener("touchend", (e) => {
+            const isOnTag = e.target === tag || tag.contains(e.target);
+            if (isOnTag) return;
+            engagement.touch = false;
+            updateFromEngagement();
+        });
+
+        container.addEventListener("touchcancel", (e) => {
+            const isOnTag = e.target === tag || tag.contains(e.target);
+            if (isOnTag) return;
+            engagement.touch = false;
+            updateFromEngagement();
+        });
+
+        // Touch on tag (shows "copy" + copies on release)
         tag.addEventListener("touchstart", () => {
-            ignoreMouseEnter = true; // Suppress synthetic mouseenter
+            ignoreMouseEnter = true;
             engagement.touch = true;
             updateFromEngagement();
         }, { passive: true });
 
         tag.addEventListener("touchend", (e) => {
             engagement.touch = false;
-            // Trigger copy on touch release (tap to copy)
+            // Trigger copy on touch release
             if (state === "ready") {
-                e.preventDefault(); // Prevent click from also firing
+                e.preventDefault();
                 doCopy();
             } else {
                 updateFromEngagement();
