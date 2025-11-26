@@ -437,13 +437,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // ──────────────────────────────────────────────────────────
 
         let state = "idle"; // idle | ready | copied | error
-        const engagement = { hover: false, scroll: false };
+        const engagement = { hover: false, scroll: false, touch: false };
         let ignoreMouseEnter = false;
         let labelTimer = null;
         let feedbackTimer = null;
         let scrollEndTimer = null;
 
-        const isEngaged = () => engagement.hover || engagement.scroll;
+        const isEngaged = () => engagement.hover || engagement.scroll || engagement.touch;
 
         // ──────────────────────────────────────────────────────────
         // Label updates
@@ -527,9 +527,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Scroll: show "copy" while scrolling (mobile)
+        // Touch tracking keeps "copy" visible while finger is down after scrolling starts
         if (scrollEl) {
+            let isTouching = false;
+
             scrollEl.addEventListener("scroll", () => {
                 engagement.scroll = true;
+                // Enable touch engagement once scrolling starts
+                if (isTouching) engagement.touch = true;
                 updateFromEngagement();
                 clearTimeout(scrollEndTimer);
                 scrollEndTimer = setTimeout(() => {
@@ -537,6 +542,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateFromEngagement();
                 }, SCROLL_END_DELAY);
             }, { passive: true });
+
+            scrollEl.addEventListener("touchstart", () => {
+                isTouching = true;
+            }, { passive: true });
+
+            scrollEl.addEventListener("touchend", () => {
+                isTouching = false;
+                engagement.touch = false;
+                updateFromEngagement();
+            });
+
+            scrollEl.addEventListener("touchcancel", () => {
+                isTouching = false;
+                engagement.touch = false;
+                updateFromEngagement();
+            });
         }
 
         // Touch: ignore synthetic mouseenter
