@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const SITE_NAME = "David Wang";
     const FADE_DURATION = 150;
     const DEBOUNCE_DELAY = 10;
-    const COPY_FEEDBACK_DURATION = 1500;
+    const COPY_FEEDBACK_DURATION = 1000;
 
     const ROUTES = {
         "/": { fragment: "_content/home.html", documentTitle: SITE_NAME },
@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Custom Scrollbar with Visibility State Machine
     // ============================================================
 
-    const SCROLL_END_DELAY = 300;
+    const SCROLL_END_DELAY = 250;
 
     const createCodeBlockScrollbar = (container, scrollEl, languageTag) => {
         if (!container || !scrollEl) return;
@@ -500,13 +500,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 tag.style.opacity = "1";
                 return;
             }
-            tag.style.transition = "opacity 0.12s ease";
+            tag.style.transition = "opacity 0.08s ease";
             tag.style.opacity = "0";
             labelTimer = setTimeout(() => {
                 tag.textContent = label;
-                tag.style.transition = "opacity 0.22s ease";
+                tag.style.transition = "opacity 0.17s ease";
                 tag.style.opacity = "1";
-            }, 120);
+            }, 80);
         };
 
         const setState = (newState) => {
