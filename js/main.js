@@ -299,15 +299,15 @@ document.addEventListener("DOMContentLoaded", () => {
         // ──────────────────────────────────────────────────────────
         // Visibility State Machine
         // States: hidden (default) | visible
-        // Sources: hover, touch, scroll, drag
+        // Sources: hover, scroll, drag (touch triggers scroll events, no separate tracking)
         // ──────────────────────────────────────────────────────────
 
-        const engagement = { hover: false, touch: false, scroll: false, drag: false };
+        const engagement = { hover: false, scroll: false, drag: false };
         let scrollEndTimer = null;
         let ignoreMouseEnter = false;
 
         const updateVisibility = () => {
-            const isVisible = engagement.hover || engagement.touch || engagement.scroll || engagement.drag;
+            const isVisible = engagement.hover || engagement.scroll || engagement.drag;
             container.classList.toggle("code-block--scrollbar-visible", isVisible);
         };
 
@@ -325,33 +325,14 @@ document.addEventListener("DOMContentLoaded", () => {
             updateVisibility();
         });
 
-        // Touch: touchstart/touchend on container (excluding language tag)
-        // Only show scrollbar on tap-and-hold, not quick taps
-        const TOUCH_HOLD_DELAY = 150;
-        let touchHoldTimer = null;
-
+        // Touch: only track for ignoring synthetic mouseenter after tag tap
+        // Scrollbar visibility on mobile is handled by scroll events only
         container.addEventListener("touchstart", (e) => {
             const isOnTag = languageTag && (e.target === languageTag || languageTag.contains(e.target));
             if (isOnTag) {
-                // Ignore the synthetic mouseenter that follows a tap on the tag
                 ignoreMouseEnter = true;
-                return;
             }
-            // Delay showing scrollbar to distinguish tap from hold
-            clearTimeout(touchHoldTimer);
-            touchHoldTimer = setTimeout(() => {
-                engagement.touch = true;
-                updateVisibility();
-            }, TOUCH_HOLD_DELAY);
         }, { passive: true });
-
-        const endTouch = () => {
-            clearTimeout(touchHoldTimer);
-            engagement.touch = false;
-            updateVisibility();
-        };
-        container.addEventListener("touchend", endTouch);
-        container.addEventListener("touchcancel", endTouch);
 
         // Scroll: show while scrolling, hide after scroll ends
         scrollEl.addEventListener("scroll", () => {
@@ -562,17 +543,35 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Touch on container (shows "copy", like hover)
+        // Track touch position to detect scrolling
+        let touchStartPos = null;
+        const SCROLL_THRESHOLD = 10; // pixels moved to consider it a scroll
+
         container.addEventListener("touchstart", (e) => {
             const isOnTag = e.target === tag || tag.contains(e.target);
             if (isOnTag) return; // Let tag handle its own touch
             ignoreMouseEnter = true;
+            touchStartPos = e.touches[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
             engagement.touch = true;
             updateFromEngagement();
+        }, { passive: true });
+
+        container.addEventListener("touchmove", (e) => {
+            // If user moves finger (scrolling), disengage touch
+            if (!engagement.touch || !touchStartPos || !e.touches[0]) return;
+            const dx = Math.abs(e.touches[0].clientX - touchStartPos.x);
+            const dy = Math.abs(e.touches[0].clientY - touchStartPos.y);
+            if (dx > SCROLL_THRESHOLD || dy > SCROLL_THRESHOLD) {
+                engagement.touch = false;
+                touchStartPos = null;
+                updateFromEngagement();
+            }
         }, { passive: true });
 
         container.addEventListener("touchend", (e) => {
             const isOnTag = e.target === tag || tag.contains(e.target);
             if (isOnTag) return;
+            touchStartPos = null;
             engagement.touch = false;
             updateFromEngagement();
         });
@@ -580,6 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
         container.addEventListener("touchcancel", (e) => {
             const isOnTag = e.target === tag || tag.contains(e.target);
             if (isOnTag) return;
+            touchStartPos = null;
             engagement.touch = false;
             updateFromEngagement();
         });
