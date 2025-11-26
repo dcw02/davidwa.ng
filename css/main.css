@@ -785,7 +785,7 @@ code {
     transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.code-block--hover .code-block__custom-scrollbar {
+.code-block--scrollbar-visible .code-block__custom-scrollbar {
     opacity: 1;
 }
 

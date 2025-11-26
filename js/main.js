@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const FADE_DURATION = 150;
     const DEBOUNCE_DELAY = 10;
     const COPY_FEEDBACK_DURATION = 1500;
-    const HOVER_REMOVAL_DELAY = 900;
 
     const ROUTES = {
         "/": { fragment: "_content/home.html", documentTitle: SITE_NAME },
@@ -257,12 +256,15 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", debouncedMenuHandler);
 
     // ============================================================
-    // Custom Scrollbar
+    // Custom Scrollbar with Visibility State Machine
     // ============================================================
 
-    const createCustomScrollbar = (container, scrollEl) => {
+    const SCROLL_END_DELAY = 150;
+
+    const createCodeBlockScrollbar = (container, scrollEl, languageTag) => {
         if (!container || !scrollEl) return;
 
+        // Create scrollbar elements
         const scrollbar = document.createElement("div");
         scrollbar.className = "code-block__custom-scrollbar";
         scrollbar.innerHTML = `
@@ -275,52 +277,114 @@ document.addEventListener("DOMContentLoaded", () => {
         const track = scrollbar.querySelector(".code-block__scrollbar-track");
         const thumb = scrollbar.querySelector(".code-block__scrollbar-thumb");
 
-        const updateScrollbar = () => {
+        // Update thumb size and position
+        const updateThumb = () => {
             const { scrollWidth, clientWidth, scrollLeft } = scrollEl;
             if (scrollWidth <= clientWidth) {
                 scrollbar.style.display = "none";
                 return;
             }
-
-            scrollbar.style.display = "block";
+            scrollbar.style.display = "";
             const thumbWidth = (clientWidth / scrollWidth) * track.offsetWidth;
             const maxScroll = scrollWidth - clientWidth;
             const thumbPosition = (scrollLeft / maxScroll) * (track.offsetWidth - thumbWidth);
-
             thumb.style.width = `${thumbWidth}px`;
             thumb.style.left = `${thumbPosition}px`;
         };
 
-        scrollEl.addEventListener("scroll", updateScrollbar, { passive: true });
+        scrollEl.addEventListener("scroll", updateThumb, { passive: true });
+        updateThumb();
+        new ResizeObserver(updateThumb).observe(scrollEl);
 
-        // Drag functionality
-        let isDragging = false;
+        // ──────────────────────────────────────────────────────────
+        // Visibility State Machine
+        // States: hidden (default) | visible
+        // Sources: hover, touch, scroll, drag
+        // ──────────────────────────────────────────────────────────
+
+        const engagement = { hover: false, touch: false, scroll: false, drag: false };
+        let scrollEndTimer = null;
+
+        const updateVisibility = () => {
+            const isVisible = engagement.hover || engagement.touch || engagement.scroll || engagement.drag;
+            container.classList.toggle("code-block--scrollbar-visible", isVisible);
+        };
+
+        // Hover: mouseenter/mouseleave on container
+        container.addEventListener("mouseenter", () => {
+            engagement.hover = true;
+            updateVisibility();
+        });
+        container.addEventListener("mouseleave", () => {
+            engagement.hover = false;
+            updateVisibility();
+        });
+
+        // Touch: touchstart/touchend on container (excluding language tag)
+        container.addEventListener("touchstart", (e) => {
+            if (languageTag && (e.target === languageTag || languageTag.contains(e.target))) return;
+            engagement.touch = true;
+            updateVisibility();
+        }, { passive: true });
+
+        const endTouch = () => {
+            engagement.touch = false;
+            updateVisibility();
+        };
+        container.addEventListener("touchend", endTouch);
+        container.addEventListener("touchcancel", endTouch);
+
+        // Scroll: show while scrolling, hide after scroll ends
+        scrollEl.addEventListener("scroll", () => {
+            engagement.scroll = true;
+            updateVisibility();
+            clearTimeout(scrollEndTimer);
+            scrollEndTimer = setTimeout(() => {
+                engagement.scroll = false;
+                updateVisibility();
+            }, SCROLL_END_DELAY);
+        }, { passive: true });
+
+        // Drag: pointerdown/pointerup on thumb (pointer capture keeps it active)
+        let dragPointerId = null;
+
+        thumb.addEventListener("pointerdown", (e) => {
+            engagement.drag = true;
+            dragPointerId = e.pointerId;
+            thumb.setPointerCapture(e.pointerId);
+            updateVisibility();
+            e.preventDefault();
+        });
+
+        const endDrag = (e) => {
+            if (e.pointerId !== dragPointerId) return;
+            engagement.drag = false;
+            dragPointerId = null;
+            thumb.releasePointerCapture(e.pointerId);
+            updateVisibility();
+        };
+        thumb.addEventListener("pointerup", endDrag);
+        thumb.addEventListener("pointercancel", endDrag);
+
+        // ──────────────────────────────────────────────────────────
+        // Drag to scroll functionality
+        // ──────────────────────────────────────────────────────────
+
         let startX = 0;
         let startScrollLeft = 0;
 
         thumb.addEventListener("pointerdown", (e) => {
-            isDragging = true;
             startX = e.clientX;
             startScrollLeft = scrollEl.scrollLeft;
-            thumb.setPointerCapture(e.pointerId);
-            e.preventDefault();
         });
 
         thumb.addEventListener("pointermove", (e) => {
-            if (!isDragging) return;
+            if (!engagement.drag) return;
             const deltaX = e.clientX - startX;
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
             const maxThumbPos = track.offsetWidth - thumb.offsetWidth;
             scrollEl.scrollLeft = startScrollLeft + (deltaX / maxThumbPos) * maxScroll;
         });
-
-        const endDrag = (e) => {
-            if (!isDragging) return;
-            isDragging = false;
-            thumb.releasePointerCapture(e.pointerId);
-        };
-        thumb.addEventListener("pointerup", endDrag);
-        thumb.addEventListener("pointercancel", endDrag);
 
         // Click on track to jump
         track.addEventListener("click", (e) => {
@@ -329,9 +393,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const ratio = (e.clientX - rect.left) / track.offsetWidth;
             scrollEl.scrollLeft = ratio * (scrollEl.scrollWidth - scrollEl.clientWidth);
         });
-
-        updateScrollbar();
-        new ResizeObserver(updateScrollbar).observe(scrollEl);
     };
 
     // ============================================================
@@ -339,178 +400,99 @@ document.addEventListener("DOMContentLoaded", () => {
     // ============================================================
 
     const enhanceCodeBlocks = (root = document) => {
-        // Create scrollbars for code blocks
         root.querySelectorAll(".code-block").forEach((container) => {
+            if (container.dataset.enhanced === "true") return;
+            container.dataset.enhanced = "true";
+
             const codeScroll = container.querySelector(".code-scroll");
-            if (codeScroll && !container.querySelector(".code-block__custom-scrollbar")) {
-                createCustomScrollbar(container, codeScroll);
+            const languageTag = container.querySelector(".code-language-tag");
+            const pre = container.querySelector("pre");
+            const code = pre?.querySelector("code");
+
+            // Create scrollbar with visibility state machine
+            if (codeScroll) {
+                createCodeBlockScrollbar(container, codeScroll, languageTag);
+            }
+
+            // Set up copy button on language tag (decoupled from scrollbar)
+            if (languageTag && code) {
+                setupCopyButton(languageTag, code);
             }
         });
+    };
 
-        // Enhance language tags with copy functionality
-        root.querySelectorAll(".code-language-tag").forEach((tag) => {
-            if (tag.dataset.enhanced === "true") return;
+    // ============================================================
+    // Copy Button (Language Tag)
+    // ============================================================
 
-            const container = tag.closest(".code-block");
-            const pre = container?.querySelector("pre") || tag.closest("pre");
-            const code = pre?.querySelector("code");
-            if (!pre || !code) return;
+    const setupCopyButton = (tag, code) => {
+        if (tag.dataset.copyEnabled === "true") return;
+        tag.dataset.copyEnabled = "true";
 
-            tag.tabIndex = tag.tabIndex ?? 0;
-            tag.setAttribute("role", "button");
+        tag.tabIndex = tag.tabIndex ?? 0;
+        tag.setAttribute("role", "button");
 
-            const originalLabel = (tag.textContent || "code").trim().toLowerCase();
-            tag.dataset.originalLabel = originalLabel;
-            tag.dataset.enhanced = "true";
+        const originalLabel = (tag.textContent || "code").trim().toLowerCase();
+        tag.dataset.originalLabel = originalLabel;
 
-            const codeScroll = container?.querySelector(".code-scroll");
-            const hoverTarget = container || pre;
+        let feedbackTimer = null;
+        let labelTimer = null;
 
-            // State
-            let state = { hover: false, focus: false, touch: false, feedbackTimer: null };
-            let hoverTimer = null;
-            let labelTimer = null;
+        const setLabel = (label, immediate = false) => {
+            const normalized = (label || "").toLowerCase();
+            if (!normalized || tag.textContent.toLowerCase() === normalized) return;
 
-            const setHoverClass = (show, delay = 0) => {
-                clearTimeout(hoverTimer);
-                if (show) {
-                    hoverTimer = setTimeout(() => container?.classList.add("code-block--hover"), delay);
-                } else {
-                    hoverTimer = setTimeout(() => {
-                        if (!state.hover && !state.focus) {
-                            container?.classList.remove("code-block--hover");
-                        }
-                    }, delay || HOVER_REMOVAL_DELAY);
-                }
-            };
+            clearTimeout(labelTimer);
+            if (immediate) {
+                tag.textContent = normalized;
+                tag.style.transition = "";
+                tag.style.opacity = "1";
+                return;
+            }
 
-            const setLabel = (label, immediate = false) => {
-                const normalized = (label || "").toLowerCase();
-                if (!normalized || tag.textContent.toLowerCase() === normalized) return;
+            tag.style.transition = "opacity 0.12s ease";
+            tag.style.opacity = "0";
+            labelTimer = setTimeout(() => {
+                tag.textContent = normalized;
+                tag.style.transition = "opacity 0.22s ease";
+                tag.style.opacity = "1";
+            }, 120);
+        };
 
-                clearTimeout(labelTimer);
-                if (immediate) {
-                    tag.textContent = normalized;
-                    tag.style.transition = "";
-                    tag.style.opacity = "1";
-                    return;
-                }
-
-                tag.style.transition = "opacity 0.12s ease";
-                tag.style.opacity = "0";
-                labelTimer = setTimeout(() => {
-                    tag.textContent = normalized;
-                    tag.style.transition = "opacity 0.22s ease";
-                    tag.style.opacity = "1";
-                }, 120);
-            };
-
-            const showCopyLabel = () => {
-                if (tag.dataset.state === "copied" || tag.dataset.state === "error") return;
-                setLabel("copy");
-            };
-
-            const showOriginalLabel = () => {
-                if (tag.dataset.state === "copied" || tag.dataset.state === "error") return;
+        const handleCopyResult = (success) => {
+            clearTimeout(feedbackTimer);
+            tag.dataset.state = success ? "copied" : "error";
+            setLabel(success ? "copied!" : "error");
+            feedbackTimer = setTimeout(() => {
+                tag.dataset.state = "";
                 setLabel(originalLabel);
-            };
+            }, COPY_FEEDBACK_DURATION);
+        };
 
-            const handleCopyResult = (success) => {
-                clearTimeout(state.feedbackTimer);
-                tag.dataset.state = success ? "copied" : "error";
-                setLabel(success ? "copied!" : "error");
-                tag.blur();
-                state.feedbackTimer = setTimeout(() => {
-                    tag.dataset.state = "";
-                    if (state.hover) showCopyLabel();
-                    else showOriginalLabel();
-                }, COPY_FEEDBACK_DURATION);
-            };
-
-            const doCopy = async () => {
-                const text = code.innerText || code.textContent || "";
-                if (!text) {
-                    handleCopyResult(false);
-                    return;
-                }
-                try {
-                    handleCopyResult(await copyToClipboard(text));
-                } catch (e) {
-                    console.error("Copy failed:", e);
-                    handleCopyResult(false);
-                }
-            };
-
-            // Event handlers
-            if (hoverTarget) {
-                hoverTarget.addEventListener("mouseenter", () => {
-                    state.hover = true;
-                    setHoverClass(true, 100);
-                    showCopyLabel();
-                });
-
-                hoverTarget.addEventListener("mouseleave", () => {
-                    state.hover = false;
-                    showOriginalLabel();
-                    setHoverClass(false, 0);
-                });
-
-                hoverTarget.addEventListener("touchstart", () => {
-                    state.touch = true;
-                    state.hover = true;
-                    setHoverClass(true, 100);
-                    showCopyLabel();
-                }, { passive: true });
-
-                hoverTarget.addEventListener("touchend", () => {
-                    state.touch = false;
-                    state.hover = false;
-                    setHoverClass(false, 350);
-                });
-
-                hoverTarget.addEventListener("touchcancel", () => {
-                    state.touch = false;
-                    state.hover = false;
-                    setHoverClass(false, 350);
-                });
+        const doCopy = async () => {
+            const text = code.innerText || code.textContent || "";
+            if (!text) {
+                handleCopyResult(false);
+                return;
             }
-
-            if (codeScroll) {
-                let scrollEndTimer = null;
-                codeScroll.addEventListener("scroll", () => {
-                    setHoverClass(true, 0);
-                    clearTimeout(scrollEndTimer);
-                    if (!state.touch && !state.hover && !state.focus) {
-                        scrollEndTimer = setTimeout(() => setHoverClass(false, 300), 150);
-                    }
-                }, { passive: true });
+            try {
+                handleCopyResult(await copyToClipboard(text));
+            } catch (e) {
+                console.error("Copy failed:", e);
+                handleCopyResult(false);
             }
+        };
 
-            tag.addEventListener("focus", () => {
-                state.focus = true;
-                setHoverClass(true, 100);
-                showCopyLabel();
-            });
+        tag.addEventListener("click", (e) => {
+            e.preventDefault();
+            doCopy();
+        });
 
-            tag.addEventListener("blur", () => {
-                state.focus = false;
-                if (!state.hover) {
-                    showOriginalLabel();
-                    setHoverClass(false, 0);
-                }
-            });
-
-            tag.addEventListener("click", (e) => {
+        tag.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 doCopy();
-            });
-
-            tag.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    doCopy();
-                }
-            });
+            }
         });
     };
 
@@ -531,8 +513,6 @@ document.addEventListener("DOMContentLoaded", () => {
             table.parentNode.insertBefore(wrapper, table);
             scrollContainer.appendChild(table);
             wrapper.appendChild(scrollContainer);
-
-            createCustomScrollbar(wrapper, scrollContainer);
         });
     };
 
