@@ -5,11 +5,9 @@
     --line-height: 1.6;
 
     --background-color: rgb(18, 18, 18);
-    --primary-text-color: rgb(224, 224, 224);
-    --primary-h1-color: color-mix(in srgb, var(--primary-text-color) 90%, var(--background-color) 10%);
-    --primary-h2-color: color-mix(in srgb, var(--primary-text-color) 92%, var(--background-color) 8%);
-    --primary-h3-color: color-mix(in srgb, var(--primary-text-color) 94%, var(--background-color) 6%);
-    --secondary-text-color: rgb(160, 160, 160);
+    --primary-text-color: rgb(178, 178, 184);
+    --header-color: rgb(242, 237, 237);
+    --secondary-text-color: rgb(122, 122, 127);
     --tertiary-text-color: rgb(108, 108, 108);
     --highlight-background-color: rgb(220, 208, 255);
     --highlight-text-color: rgb(4, 4, 5);
@@ -62,7 +60,7 @@ body {
 }
 
 h1 {
-    color: var(--primary-h1-color);
+    color: var(--header-color);
     font-size: 2.5rem;
     font-weight: 300;
     font-stretch: normal;
@@ -84,27 +82,26 @@ h1 {
 }
 
 h2 {
-    color: var(--primary-h2-color);
-    font-size: 1.56rem;
+    color: var(--header-color);
+    font-size: 1.6rem;
     font-stretch: normal;
     font-weight: 400;
     letter-spacing: 0.012em;
-    margin: 1.5rem 0 0.75rem 0;
+    margin: 3rem 0 1.5rem 0;
     position: relative;
     scroll-margin-top: 1.5rem;
     clear: both;
 }
 
 h3 {
-    color: var(--primary-h3-color);
+    color: var(--header-color);
     font-size: 1.25rem;
     font-stretch: normal;
-    font-style: italic;
     font-weight: 400;
     letter-spacing: 0.008em;
-    margin: 1.2rem 0 0.6rem 0;
+    margin: 1.5rem 0 0.75rem 0;
     position: relative;
-    scroll-margin-top: 1.2rem;
+    scroll-margin-top: 1.5rem;
     clear: both;
 }
 
@@ -123,7 +120,7 @@ h3 {
 }
 
 .writing-toc {
-    margin: 0 0 1.2rem;
+    margin: 0 0 1.5rem;
     padding: 0;
     font-size: 1rem;
     line-height: 1.3;
@@ -272,7 +269,7 @@ h3 {
 }
 
 .writing-post__rail {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
 }
 
 @media (min-width: 136ch) {
@@ -419,15 +416,15 @@ p, i, a, li, tr, th, td, caption {
 }
 
 p, i, a {
-    margin: 0 0 1.2rem;
+    margin: 0 0 1.5rem;
 }
 
 footer {
-    margin: 2.4rem 0 1.2rem;
+    margin: 3rem 0 1.5rem;
 }
 
 ul, ol {
-    margin: 1.2rem 0 1.2rem 2ch;
+    margin: 1.5rem 0 1.5rem 2ch;
     padding-left: 1.75rem;
 }
 
@@ -489,7 +486,7 @@ li + li {
 figure {
     max-width: 100%;
     width: fit-content;
-    margin: 1.2rem auto;
+    margin: 1.5rem auto;
     text-align: center;
 }
 
@@ -512,7 +509,7 @@ figcaption {
     position: relative;
     width: 100%;
     max-width: 100%;
-    margin: 1.2rem auto;
+    margin: 1.5rem auto;
     overflow: hidden;
 }
 
@@ -553,7 +550,7 @@ img:not(figure img) {
     max-width: 100%;
     width: auto;
     height: auto;
-    margin: 1.2rem auto;
+    margin: 1.5rem auto;
 }
 
 a {
@@ -641,12 +638,12 @@ img, video {
     justify-content: space-between;
     align-items: baseline;
     line-height: 1.6;
-    margin: 0 0 1.2rem 0;
+    margin: 0 0 1.5rem 0;
 }
 
 .subtitle.subtitle--stacked {
     flex-direction: column;
-    gap: 1.2rem;
+    gap: 1.5rem;
     align-items: flex-start;
 }
 
@@ -682,10 +679,10 @@ img, video {
 }
 
 .writing-post blockquote {
-    margin: 1.2rem 0;
+    margin: 1.5rem 0;
     padding: 0 0 0 2ch;
     border-left: 0.25em solid var(--highlight-background-color);
-    color: var(--blockquote-text);
+    color: var(--secondary-text-color);
 }
 
 .writing-post blockquote p {
@@ -708,7 +705,7 @@ code {
 
 .writing-post .code-block {
     position: relative;
-    margin: 1.2rem 0;
+    margin: 1.5rem 0;
     padding: 0;
     background-color: var(--code-background);
     border-radius: 0.2em;
@@ -814,7 +811,7 @@ code {
 
 .math-display {
     display: block;
-    margin: 1.2rem 0;
+    margin: 1.5rem 0;
     text-align: center;
     overflow-x: auto;
     font-size: 1.308em;
