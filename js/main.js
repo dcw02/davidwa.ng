@@ -304,6 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const engagement = { hover: false, touch: false, scroll: false, drag: false };
         let scrollEndTimer = null;
+        let ignoreMouseEnter = false;
 
         const updateVisibility = () => {
             const isVisible = engagement.hover || engagement.touch || engagement.scroll || engagement.drag;
@@ -312,6 +313,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Hover: mouseenter/mouseleave on container
         container.addEventListener("mouseenter", () => {
+            if (ignoreMouseEnter) {
+                ignoreMouseEnter = false;
+                return;
+            }
             engagement.hover = true;
             updateVisibility();
         });
@@ -322,7 +327,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Touch: touchstart/touchend on container (excluding language tag)
         container.addEventListener("touchstart", (e) => {
-            if (languageTag && (e.target === languageTag || languageTag.contains(e.target))) return;
+            const isOnTag = languageTag && (e.target === languageTag || languageTag.contains(e.target));
+            if (isOnTag) {
+                // Ignore the synthetic mouseenter that follows a tap on the tag
+                ignoreMouseEnter = true;
+                return;
+            }
             engagement.touch = true;
             updateVisibility();
         }, { passive: true });
