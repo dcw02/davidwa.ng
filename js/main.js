@@ -350,20 +350,29 @@ document.addEventListener("DOMContentLoaded", () => {
             }, SCROLL_END_DELAY);
         }, { passive: true });
 
+        let touchEndTimer = null;
+
         scrollEl.addEventListener("touchstart", () => {
+            clearTimeout(touchEndTimer);
             isTouching = true;
         }, { passive: true });
 
         scrollEl.addEventListener("touchend", () => {
             isTouching = false;
-            engagement.touch = false;
-            updateVisibility();
+            clearTimeout(touchEndTimer);
+            touchEndTimer = setTimeout(() => {
+                engagement.touch = false;
+                updateVisibility();
+            }, SCROLL_END_DELAY);
         });
 
         scrollEl.addEventListener("touchcancel", () => {
             isTouching = false;
-            engagement.touch = false;
-            updateVisibility();
+            clearTimeout(touchEndTimer);
+            touchEndTimer = setTimeout(() => {
+                engagement.touch = false;
+                updateVisibility();
+            }, SCROLL_END_DELAY);
         });
 
         // Drag: pointerdown/pointerup on thumb (pointer capture keeps it active)
@@ -576,20 +585,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 }, SCROLL_END_DELAY);
             }, { passive: true });
 
+            let touchEndTimer = null;
+
             scrollEl.addEventListener("touchstart", () => {
+                clearTimeout(touchEndTimer);
                 isTouching = true;
             }, { passive: true });
 
             scrollEl.addEventListener("touchend", () => {
                 isTouching = false;
-                engagement.touch = false;
-                updateFromEngagement();
+                clearTimeout(touchEndTimer);
+                touchEndTimer = setTimeout(() => {
+                    engagement.touch = false;
+                    updateFromEngagement();
+                }, SCROLL_END_DELAY);
             });
 
             scrollEl.addEventListener("touchcancel", () => {
                 isTouching = false;
-                engagement.touch = false;
-                updateFromEngagement();
+                clearTimeout(touchEndTimer);
+                touchEndTimer = setTimeout(() => {
+                    engagement.touch = false;
+                    updateFromEngagement();
+                }, SCROLL_END_DELAY);
             });
         }
 
