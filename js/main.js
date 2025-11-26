@@ -325,13 +325,10 @@ document.addEventListener("DOMContentLoaded", () => {
             updateVisibility();
         });
 
-        // Touch: only track for ignoring synthetic mouseenter after tag tap
+        // Touch: ignore synthetic mouseenter that follows any touch
         // Scrollbar visibility on mobile is handled by scroll events only
-        container.addEventListener("touchstart", (e) => {
-            const isOnTag = languageTag && (e.target === languageTag || languageTag.contains(e.target));
-            if (isOnTag) {
-                ignoreMouseEnter = true;
-            }
+        container.addEventListener("touchstart", () => {
+            ignoreMouseEnter = true;
         }, { passive: true });
 
         // Scroll: show while scrolling, hide after scroll ends
