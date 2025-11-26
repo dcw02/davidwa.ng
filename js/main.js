@@ -421,26 +421,43 @@ document.addEventListener("DOMContentLoaded", () => {
     // ============================================================
     // Language Tag State Machine
     // ============================================================
-    // States: idle | ready
-    // Engagement sources: hover, touch
-    // Labels: idle → language, ready → "copy"
+    // States: idle | ready | copied | error
+    // Engagement sources: hover (desktop), scroll (mobile)
+    // Labels: idle → language, ready → "copy", copied → "copied!", error → "error"
 
     const setupLanguageTag = (tag, container, code) => {
         if (tag.dataset.enhanced === "true") return;
         tag.dataset.enhanced = "true";
 
         const originalLabel = (tag.textContent || "code").trim().toLowerCase();
+        const scrollEl = container.querySelector(".code-scroll");
 
         // ──────────────────────────────────────────────────────────
         // State
         // ──────────────────────────────────────────────────────────
 
-        const engagement = { hover: false, touch: false };
+        let state = "idle"; // idle | ready | copied | error
+        const engagement = { hover: false, scroll: false };
         let ignoreMouseEnter = false;
-
-        const isEngaged = () => engagement.hover || engagement.touch;
-
         let labelTimer = null;
+        let feedbackTimer = null;
+        let scrollEndTimer = null;
+
+        const isEngaged = () => engagement.hover || engagement.scroll;
+
+        // ──────────────────────────────────────────────────────────
+        // Label updates
+        // ──────────────────────────────────────────────────────────
+
+        const labelForState = (s) => {
+            switch (s) {
+                case "idle": return originalLabel;
+                case "ready": return "copy";
+                case "copied": return "copied!";
+                case "error": return "error";
+                default: return originalLabel;
+            }
+        };
 
         const setLabel = (label) => {
             if (tag.textContent.toLowerCase() === label) return;
@@ -454,32 +471,90 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 120);
         };
 
-        const updateLabel = () => {
-            setLabel(isEngaged() ? "copy" : originalLabel);
+        const setState = (newState) => {
+            if (state === newState) return;
+            state = newState;
+            setLabel(labelForState(newState));
+        };
+
+        const updateFromEngagement = () => {
+            if (state === "copied" || state === "error") return;
+            setState(isEngaged() ? "ready" : "idle");
+        };
+
+        // ──────────────────────────────────────────────────────────
+        // Copy action
+        // ──────────────────────────────────────────────────────────
+
+        const doCopy = async () => {
+            const text = code.innerText || code.textContent || "";
+            if (!text) {
+                handleCopyResult(false);
+                return;
+            }
+            try {
+                handleCopyResult(await copyToClipboard(text));
+            } catch (e) {
+                console.error("Copy failed:", e);
+                handleCopyResult(false);
+            }
+        };
+
+        const handleCopyResult = (success) => {
+            clearTimeout(feedbackTimer);
+            setState(success ? "copied" : "error");
+            feedbackTimer = setTimeout(() => {
+                setState(isEngaged() ? "ready" : "idle");
+            }, COPY_FEEDBACK_DURATION);
         };
 
         // ──────────────────────────────────────────────────────────
         // Event handlers
         // ──────────────────────────────────────────────────────────
 
-        // Hover on container
+        // Hover on container (desktop)
         container.addEventListener("mouseenter", () => {
             if (ignoreMouseEnter) {
                 ignoreMouseEnter = false;
                 return;
             }
             engagement.hover = true;
-            updateLabel();
+            updateFromEngagement();
         });
         container.addEventListener("mouseleave", () => {
             engagement.hover = false;
-            updateLabel();
+            updateFromEngagement();
         });
 
-        // Touch: ignore synthetic mouseenter (no touch engagement on mobile)
+        // Scroll: show "copy" while scrolling (mobile)
+        if (scrollEl) {
+            scrollEl.addEventListener("scroll", () => {
+                engagement.scroll = true;
+                updateFromEngagement();
+                clearTimeout(scrollEndTimer);
+                scrollEndTimer = setTimeout(() => {
+                    engagement.scroll = false;
+                    updateFromEngagement();
+                }, SCROLL_END_DELAY);
+            }, { passive: true });
+        }
+
+        // Touch: ignore synthetic mouseenter
         container.addEventListener("touchstart", () => {
             ignoreMouseEnter = true;
         }, { passive: true });
+
+        // Tap on tag: copy immediately (mobile)
+        tag.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            doCopy();
+        });
+
+        // Click on tag (desktop)
+        tag.addEventListener("click", (e) => {
+            e.preventDefault();
+            doCopy();
+        });
     };
 
     // ============================================================
