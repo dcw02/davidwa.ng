@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Custom Scrollbar with Visibility State Machine
     // ============================================================
 
-    const SCROLL_END_DELAY = 150;
+    const SCROLL_END_DELAY = 300;
 
     const createCodeBlockScrollbar = (container, scrollEl, languageTag) => {
         if (!container || !scrollEl) return;
@@ -304,6 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const engagement = { hover: false, scroll: false, touch: false, drag: false };
         let scrollEndTimer = null;
+        let hoverEndTimer = null;
         let ignoreMouseEnter = false;
 
         const updateVisibility = () => {
@@ -317,12 +318,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 ignoreMouseEnter = false;
                 return;
             }
+            clearTimeout(hoverEndTimer);
             engagement.hover = true;
             updateVisibility();
         });
         container.addEventListener("mouseleave", () => {
-            engagement.hover = false;
-            updateVisibility();
+            clearTimeout(hoverEndTimer);
+            hoverEndTimer = setTimeout(() => {
+                engagement.hover = false;
+                updateVisibility();
+            }, SCROLL_END_DELAY);
         });
 
         // Touch: ignore synthetic mouseenter that follows any touch
@@ -461,6 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let labelTimer = null;
         let feedbackTimer = null;
         let scrollEndTimer = null;
+        let hoverEndTimer = null;
 
         const isEngaged = () => engagement.hover || engagement.scroll || engagement.touch;
 
@@ -479,8 +485,12 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const setLabel = (label) => {
-            if (tag.textContent.toLowerCase() === label) return;
             clearTimeout(labelTimer);
+            // If already showing this label, just ensure it's visible
+            if (tag.textContent.toLowerCase() === label) {
+                tag.style.opacity = "1";
+                return;
+            }
             tag.style.transition = "opacity 0.12s ease";
             tag.style.opacity = "0";
             labelTimer = setTimeout(() => {
@@ -537,12 +547,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 ignoreMouseEnter = false;
                 return;
             }
+            clearTimeout(hoverEndTimer);
             engagement.hover = true;
             updateFromEngagement();
         });
         container.addEventListener("mouseleave", () => {
-            engagement.hover = false;
-            updateFromEngagement();
+            clearTimeout(hoverEndTimer);
+            hoverEndTimer = setTimeout(() => {
+                engagement.hover = false;
+                updateFromEngagement();
+            }, SCROLL_END_DELAY);
         });
 
         // Scroll: show "copy" while scrolling (mobile)
