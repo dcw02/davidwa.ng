@@ -98,7 +98,7 @@ def collapse_text(value: str) -> str:
     return " ".join(parts).strip()
 
 
-def parse_markdown_body(body: str) -> Tuple[List[Block], Optional[str], str]:
+def parse_markdown_body(body: str) -> Tuple[List[Block], Optional[str], str, dict[str, str], dict[str, dict[str, str]]]:
     blocks: List[Block] = []
     lines = body.splitlines()
     i = 0
