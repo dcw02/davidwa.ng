@@ -138,6 +138,31 @@ h3 {
     }
 }
 
+strong {
+    color: var(--color-heading);
+    font-weight: 600;
+}
+
+mark {
+    background: var(--color-accent);
+    color: var(--color-accent-contrast);
+    padding: 0 0.2em;
+    margin: 0 -0.2em;
+    border-radius: var(--radius);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+mark strong {
+    color: inherit;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--color-text-muted);
+    margin: var(--space-lg) 0;
+}
+
 .writing-toc {
     margin: 0 0 var(--space-md);
     padding: 0;
@@ -442,11 +467,40 @@ ul, ol {
 }
 
 ul ul, ol ol, ul ol, ol ul {
-    margin: var(--text-base) 0 var(--text-base) 1.5ch;
+    margin: 0 0 0 2ch;
+    padding-left: 1.75rem;
 }
 
 li + li {
     margin-top: calc(var(--space) / 3);
+}
+
+li > ul, li > ol {
+    margin-top: calc(var(--space) / 3);
+}
+
+ol { list-style-type: decimal; }
+ol ol { list-style-type: lower-alpha; }
+ol ol ol { list-style-type: lower-roman; }
+ol ol ol ol { list-style-type: upper-alpha; }
+
+.task-list {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 2ch;
+}
+
+.task-item::before {
+    content: "[ ] ";
+    color: var(--color-text-muted);
+}
+
+.task-item--done::before {
+    content: "[×] ";
+}
+
+.task-item--done {
+    color: var(--color-text-muted);
 }
 
 .heading-anchor {
@@ -567,7 +621,7 @@ img:not(figure img) {
 }
 
 a {
-    color: var(--color-text);
+    color: var(--color-heading);
     position: relative;
     text-decoration: underline 1px;
     text-underline-offset: 0.15em;
