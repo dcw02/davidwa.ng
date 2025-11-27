@@ -71,29 +71,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return Number.isFinite(fallback) ? fallback * 1.2 : 16;
     };
 
-    const copyToClipboardAsync = async (text) => {
-        // Try Clipboard API first (modern, requires secure context + user activation)
+    const copyToClipboard = async (text) => {
         if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
             return true;
         }
-        // Fallback to execCommand
+        // Fallback for older browsers
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.setAttribute("readonly", "");
-        textarea.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;outline:none;opacity:0";
+        textarea.style.cssText = "position:absolute;left:-9999px";
         document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.setSelectionRange(0, text.length);
-        let success = false;
+        textarea.select();
         try {
-            success = document.execCommand("copy");
-        } catch (e) {
-            success = false;
+            return document.execCommand("copy");
+        } finally {
+            document.body.removeChild(textarea);
         }
-        document.body.removeChild(textarea);
-        if (!success) throw new Error("execCommand failed");
-        return true;
     };
 
     // ============================================================
@@ -520,7 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setState(engaged ? "ready" : "idle");
         };
 
-        const tracker = createEngagementTracker(["hover", "scroll", "touch", "longpress"], updateFromEngagement);
+        const tracker = createEngagementTracker(["hover", "scroll", "touch"], updateFromEngagement);
         setupHoverEngagement(container, tracker);
         if (scrollEl) setupScrollEngagement(scrollEl, tracker);
 
@@ -529,38 +523,24 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
         });
 
-        // Long-press engagement for non-scrollable code blocks on mobile
-        let longPressTimer = null;
-        let hasActiveTouch = false;
+        // Long-press to copy for code blocks on mobile
+        let touchStartTime = 0;
+        let touchMoved = false;
 
-        container.addEventListener("touchstart", (e) => {
-            hasActiveTouch = true;
-            clearTimeout(longPressTimer);
-            longPressTimer = setTimeout(() => {
-                tracker.engage("longpress");
-            }, LONG_PRESS_DURATION);
+        container.addEventListener("touchstart", () => {
+            touchStartTime = Date.now();
+            touchMoved = false;
         }, { passive: true });
 
         container.addEventListener("touchmove", () => {
-            clearTimeout(longPressTimer);
+            touchMoved = true;
         }, { passive: true });
 
         container.addEventListener("touchend", (e) => {
-            clearTimeout(longPressTimer);
-            if (e.touches.length === 0) {
-                hasActiveTouch = false;
-                // Only disengage if not showing feedback
-                if (state !== "copied" && state !== "error") {
-                    tracker.disengage("longpress");
-                }
-            }
-        });
-
-        container.addEventListener("touchcancel", (e) => {
-            clearTimeout(longPressTimer);
-            if (e.touches.length === 0) {
-                hasActiveTouch = false;
-                tracker.disengage("longpress", true);
+            // Long-press to copy: held 250ms+ without moving
+            if (!touchMoved && Date.now() - touchStartTime >= LONG_PRESS_DURATION) {
+                e.preventDefault();
+                doCopy();
             }
         });
 
@@ -568,38 +548,28 @@ document.addEventListener("DOMContentLoaded", () => {
         // Copy action
         // ──────────────────────────────────────────────────────────
 
-        const doCopy = () => {
+        const doCopy = async () => {
             const text = code.innerText || code.textContent || "";
-            if (!text) {
-                return handleCopyResult(false, "no text");
+            if (!text) return handleCopyResult(false);
+            try {
+                handleCopyResult(await copyToClipboard(text));
+            } catch (e) {
+                console.error("Copy failed:", e);
+                handleCopyResult(false);
             }
-            // Call async but don't await - keeps user activation
-            copyToClipboardAsync(text)
-                .then(() => handleCopyResult(true))
-                .catch((e) => handleCopyResult(false, e.message));
         };
 
-        const handleCopyResult = (success, errorMsg = null) => {
+        const handleCopyResult = (success) => {
             clearTimeout(feedbackTimer);
-            if (success) {
-                setState("copied");
-            } else {
-                // Show error in tag for debugging
-                setLabel(errorMsg ? `err: ${errorMsg}` : "error");
-                state = "error";
-            }
-            const duration = success ? COPY_FEEDBACK_DURATION : 3000; // longer for errors
+            setState(success ? "copied" : "error");
             feedbackTimer = setTimeout(() => {
-                // Disengage if no longer touching
-                if (!hasActiveTouch) {
-                    tracker.disengage("longpress", true);
-                }
                 setState(tracker.isEngaged() ? "ready" : "idle");
-            }, duration);
+            }, COPY_FEEDBACK_DURATION);
         };
 
         // Tap on tag: copy immediately (mobile)
-        tag.addEventListener("touchend", () => {
+        tag.addEventListener("touchend", (e) => {
+            e.preventDefault();
             doCopy();
         });
 
