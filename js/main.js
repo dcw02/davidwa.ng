@@ -518,6 +518,11 @@ document.addEventListener("DOMContentLoaded", () => {
         setupHoverEngagement(container, tracker);
         if (scrollEl) setupScrollEngagement(scrollEl, tracker);
 
+        // Prevent native context menu on code blocks (enables long-press on Android Firefox)
+        container.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        });
+
         // Long-press engagement for non-scrollable code blocks on mobile
         let longPressTimer = null;
         let longPressTriggered = false;
