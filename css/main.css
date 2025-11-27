@@ -777,6 +777,7 @@ code {
     background-color: var(--color-code-bg);
     border-radius: var(--radius);
     overflow: hidden;
+    -webkit-touch-callout: none;
 }
 
 .writing-post .code-block .code-scroll {

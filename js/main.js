@@ -525,20 +525,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Long-press to copy for code blocks on mobile
         let longPressTimer = null;
+        let touchStartTime = 0;
+        let touchMoved = false;
+        let copiedThisTouch = false;
+
+        const doCopySilent = async () => {
+            const text = code.innerText || code.textContent || "";
+            if (!text) return;
+            try {
+                if (await copyToClipboard(text)) {
+                    copiedThisTouch = true;
+                    handleCopyResult(true);
+                }
+            } catch (e) {
+                // Silent fail - touchend will retry
+            }
+        };
 
         container.addEventListener("touchstart", () => {
+            touchStartTime = Date.now();
+            touchMoved = false;
+            copiedThisTouch = false;
             clearTimeout(longPressTimer);
             longPressTimer = setTimeout(() => {
-                doCopy();
+                doCopySilent(); // Works on Android, silent fail on iOS
             }, LONG_PRESS_DURATION);
         }, { passive: true });
 
         container.addEventListener("touchmove", () => {
+            touchMoved = true;
             clearTimeout(longPressTimer);
         }, { passive: true });
 
         container.addEventListener("touchend", () => {
             clearTimeout(longPressTimer);
+            // If held 250ms+ without moving and timer copy didn't succeed, try on touchend
+            if (!touchMoved && !copiedThisTouch && Date.now() - touchStartTime >= LONG_PRESS_DURATION) {
+                doCopy(); // Works on iOS
+            }
         });
 
         container.addEventListener("touchcancel", () => {
