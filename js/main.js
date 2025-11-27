@@ -71,12 +71,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return Number.isFinite(fallback) ? fallback * 1.2 : 16;
     };
 
-    const copyToClipboard = (text) => {
-        // Use execCommand with proper focus (synchronous, better user activation)
+    const copyToClipboardAsync = async (text) => {
+        // Try Clipboard API first (modern, requires secure context + user activation)
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        // Fallback to execCommand
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.setAttribute("readonly", "");
-        // Keep in viewport but visually hidden (some browsers need this)
         textarea.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;outline:none;opacity:0";
         document.body.appendChild(textarea);
         textarea.focus();
@@ -88,7 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
             success = false;
         }
         document.body.removeChild(textarea);
-        return success;
+        if (!success) throw new Error("execCommand failed");
+        return true;
     };
 
     // ============================================================
@@ -568,8 +573,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!text) {
                 return handleCopyResult(false, "no text");
             }
-            const result = copyToClipboard(text);
-            handleCopyResult(result, result ? null : "execCommand failed");
+            // Call async but don't await - keeps user activation
+            copyToClipboardAsync(text)
+                .then(() => handleCopyResult(true))
+                .catch((e) => handleCopyResult(false, e.message));
         };
 
         const handleCopyResult = (success, errorMsg = null) => {
@@ -592,8 +599,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         // Tap on tag: copy immediately (mobile)
-        tag.addEventListener("touchend", (e) => {
-            e.preventDefault();
+        tag.addEventListener("touchend", () => {
             doCopy();
         });
 
