@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const DEBOUNCE_DELAY = 10;
     const COPY_FEEDBACK_DURATION = 1000;
     const ENGAGEMENT_DELAY = 250;
+    const LONG_PRESS_DURATION = 250;
 
     const ROUTES = {
         "/": { fragment: "_content/home.html", documentTitle: SITE_NAME },
@@ -513,9 +514,39 @@ document.addEventListener("DOMContentLoaded", () => {
             setState(engaged ? "ready" : "idle");
         };
 
-        const tracker = createEngagementTracker(["hover", "scroll", "touch"], updateFromEngagement);
+        const tracker = createEngagementTracker(["hover", "scroll", "touch", "longpress"], updateFromEngagement);
         setupHoverEngagement(container, tracker);
         if (scrollEl) setupScrollEngagement(scrollEl, tracker);
+
+        // Long-press engagement for non-scrollable code blocks on mobile
+        let longPressTimer = null;
+        let longPressTriggered = false;
+
+        container.addEventListener("touchstart", (e) => {
+            longPressTriggered = false;
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                tracker.engage("longpress");
+            }, LONG_PRESS_DURATION);
+        }, { passive: true });
+
+        container.addEventListener("touchmove", () => {
+            clearTimeout(longPressTimer);
+        }, { passive: true });
+
+        container.addEventListener("touchend", () => {
+            clearTimeout(longPressTimer);
+            if (longPressTriggered) {
+                tracker.disengage("longpress");
+            }
+        });
+
+        container.addEventListener("touchcancel", () => {
+            clearTimeout(longPressTimer);
+            if (longPressTriggered) {
+                tracker.disengage("longpress", true);
+            }
+        });
 
         // ──────────────────────────────────────────────────────────
         // Copy action
