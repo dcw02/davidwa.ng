@@ -72,11 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const copyToClipboard = async (text) => {
-        if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text);
-            return true;
-        }
-        // Fallback for older browsers
+        // Try execCommand first (more reliable on mobile for user activation)
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.setAttribute("readonly", "");
@@ -84,10 +80,20 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.appendChild(textarea);
         textarea.select();
         try {
-            return document.execCommand("copy");
+            if (document.execCommand("copy")) {
+                return true;
+            }
+        } catch (e) {
+            // execCommand failed, try clipboard API
         } finally {
             document.body.removeChild(textarea);
         }
+        // Fallback to clipboard API
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        return false;
     };
 
     // ============================================================
@@ -528,9 +534,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let longPressTriggered = false;
 
         container.addEventListener("touchstart", (e) => {
-            // If there was a previous long-press engagement, clean it up
+            // If there was a previous long-press engagement, schedule cleanup
+            // (delayed so copy action can set state to copied/error first)
             if (longPressTriggered) {
-                tracker.disengage("longpress", true);
+                tracker.disengage("longpress");
             }
             longPressTriggered = false;
             longPressTimer = setTimeout(() => {
@@ -563,11 +570,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const doCopy = async () => {
             const text = code.innerText || code.textContent || "";
-            if (!text) return handleCopyResult(false);
+            if (!text) {
+                console.error("Copy failed: no text content");
+                return handleCopyResult(false);
+            }
             try {
-                handleCopyResult(await copyToClipboard(text));
+                const result = await copyToClipboard(text);
+                if (!result) console.error("Copy failed: copyToClipboard returned false");
+                handleCopyResult(result);
             } catch (e) {
-                console.error("Copy failed:", e);
+                console.error("Copy failed:", e.name, e.message);
                 handleCopyResult(false);
             }
         };
