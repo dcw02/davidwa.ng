@@ -524,24 +524,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Long-press to copy for code blocks on mobile
-        let touchStartTime = 0;
-        let touchMoved = false;
+        let longPressTimer = null;
 
         container.addEventListener("touchstart", () => {
-            touchStartTime = Date.now();
-            touchMoved = false;
+            clearTimeout(longPressTimer);
+            longPressTimer = setTimeout(() => {
+                doCopy();
+            }, LONG_PRESS_DURATION);
         }, { passive: true });
 
         container.addEventListener("touchmove", () => {
-            touchMoved = true;
+            clearTimeout(longPressTimer);
         }, { passive: true });
 
-        container.addEventListener("touchend", (e) => {
-            // Long-press to copy: held 250ms+ without moving
-            if (!touchMoved && Date.now() - touchStartTime >= LONG_PRESS_DURATION) {
-                e.preventDefault();
-                doCopy();
-            }
+        container.addEventListener("touchend", () => {
+            clearTimeout(longPressTimer);
+        });
+
+        container.addEventListener("touchcancel", () => {
+            clearTimeout(longPressTimer);
         });
 
         // ──────────────────────────────────────────────────────────
