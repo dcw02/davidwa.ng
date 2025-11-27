@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const FADE_DURATION = 150;
     const DEBOUNCE_DELAY = 10;
     const COPY_FEEDBACK_DURATION = 1000;
-    const ENGAGEMENT_DELAY = 250;
+    const ENGAGEMENT_DELAY = 500;
     const LONG_PRESS_DURATION = 250;
 
     const ROUTES = {
@@ -518,69 +518,29 @@ document.addEventListener("DOMContentLoaded", () => {
         setupHoverEngagement(container, tracker);
         if (scrollEl) setupScrollEngagement(scrollEl, tracker);
 
-        // Prevent native context menu on code blocks (enables long-press on Android Firefox)
-        container.addEventListener("contextmenu", (e) => {
-            e.preventDefault();
-        });
-
-        // Long-press to copy for code blocks on mobile
-        let longPressTimer = null;
-        let touchStartTime = 0;
-        let touchMoved = false;
-        let copiedThisTouch = false;
-
-        const doCopySilent = async () => {
-            const text = code.innerText || code.textContent || "";
-            if (!text) return;
-            try {
-                if (await copyToClipboard(text)) {
-                    copiedThisTouch = true;
-                    handleCopyResult(true);
-                }
-            } catch (e) {
-                // Silent fail - touchend will retry
-            }
-        };
-
-        container.addEventListener("touchstart", () => {
-            touchStartTime = Date.now();
-            touchMoved = false;
-            copiedThisTouch = false;
-            clearTimeout(longPressTimer);
-            longPressTimer = setTimeout(() => {
-                doCopySilent(); // Works on Android, silent fail on iOS
-            }, LONG_PRESS_DURATION);
-        }, { passive: true });
-
-        container.addEventListener("touchmove", () => {
-            touchMoved = true;
-            clearTimeout(longPressTimer);
-        }, { passive: true });
-
-        container.addEventListener("touchend", () => {
-            clearTimeout(longPressTimer);
-            // If held 250ms+ without moving and timer copy didn't succeed, try on touchend
-            if (!touchMoved && !copiedThisTouch && Date.now() - touchStartTime >= LONG_PRESS_DURATION) {
-                doCopy(); // Works on iOS
-            }
-        });
-
-        container.addEventListener("touchcancel", () => {
-            clearTimeout(longPressTimer);
-        });
-
         // ──────────────────────────────────────────────────────────
         // Copy action
         // ──────────────────────────────────────────────────────────
 
-        const doCopy = async () => {
+        let longPressTimer = null;
+        let longPressState = { start: 0, moved: false, copied: false };
+
+        const doCopy = async (silent = false) => {
             const text = code.innerText || code.textContent || "";
-            if (!text) return handleCopyResult(false);
+            if (!text) return silent || handleCopyResult(false);
             try {
-                handleCopyResult(await copyToClipboard(text));
+                const success = await copyToClipboard(text);
+                if (success) {
+                    longPressState.copied = true;
+                    handleCopyResult(true);
+                } else if (!silent) {
+                    handleCopyResult(false);
+                }
             } catch (e) {
-                console.error("Copy failed:", e);
-                handleCopyResult(false);
+                if (!silent) {
+                    console.error("Copy failed:", e);
+                    handleCopyResult(false);
+                }
             }
         };
 
@@ -591,6 +551,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 setState(tracker.isEngaged() ? "ready" : "idle");
             }, COPY_FEEDBACK_DURATION);
         };
+
+        // Prevent native context menu (enables long-press on Android Firefox)
+        container.addEventListener("contextmenu", (e) => e.preventDefault());
+
+        // Long-press to copy (hybrid: timer for Android, touchend fallback for iOS)
+        container.addEventListener("touchstart", () => {
+            longPressState = { start: Date.now(), moved: false, copied: false };
+            clearTimeout(longPressTimer);
+            longPressTimer = setTimeout(() => doCopy(true), LONG_PRESS_DURATION);
+        }, { passive: true });
+
+        container.addEventListener("touchmove", () => {
+            longPressState.moved = true;
+            clearTimeout(longPressTimer);
+        }, { passive: true });
+
+        container.addEventListener("touchend", () => {
+            clearTimeout(longPressTimer);
+            const { start, moved, copied } = longPressState;
+            if (!moved && !copied && Date.now() - start >= LONG_PRESS_DURATION) {
+                doCopy();
+            }
+        });
+
+        container.addEventListener("touchcancel", () => clearTimeout(longPressTimer));
 
         // Tap on tag: copy immediately (mobile)
         tag.addEventListener("touchend", (e) => {
