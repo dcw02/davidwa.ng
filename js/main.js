@@ -528,6 +528,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let longPressTriggered = false;
 
         container.addEventListener("touchstart", (e) => {
+            // If there was a previous long-press engagement, clean it up
+            if (longPressTriggered) {
+                tracker.disengage("longpress", true);
+            }
             longPressTriggered = false;
             longPressTimer = setTimeout(() => {
                 longPressTriggered = true;
