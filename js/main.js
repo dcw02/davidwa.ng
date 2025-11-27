@@ -550,9 +550,10 @@ document.addEventListener("DOMContentLoaded", () => {
             clearTimeout(longPressTimer);
         }, { passive: true });
 
-        container.addEventListener("touchend", () => {
+        container.addEventListener("touchend", (e) => {
             clearTimeout(longPressTimer);
-            if (longPressTriggered) {
+            // Only disengage if no more active touches
+            if (longPressTriggered && e.touches.length === 0) {
                 tracker.disengage("longpress");
             }
         });
@@ -571,25 +572,29 @@ document.addEventListener("DOMContentLoaded", () => {
         const doCopy = async () => {
             const text = code.innerText || code.textContent || "";
             if (!text) {
-                console.error("Copy failed: no text content");
-                return handleCopyResult(false);
+                return handleCopyResult(false, "no text");
             }
             try {
                 const result = await copyToClipboard(text);
-                if (!result) console.error("Copy failed: copyToClipboard returned false");
-                handleCopyResult(result);
+                handleCopyResult(result, result ? null : "returned false");
             } catch (e) {
-                console.error("Copy failed:", e.name, e.message);
-                handleCopyResult(false);
+                handleCopyResult(false, `${e.name}: ${e.message}`);
             }
         };
 
-        const handleCopyResult = (success) => {
+        const handleCopyResult = (success, errorMsg = null) => {
             clearTimeout(feedbackTimer);
-            setState(success ? "copied" : "error");
+            if (success) {
+                setState("copied");
+            } else {
+                // Show error in tag for debugging
+                setLabel(errorMsg ? `err: ${errorMsg}` : "error");
+                state = "error";
+            }
+            const duration = success ? COPY_FEEDBACK_DURATION : 3000; // longer for errors
             feedbackTimer = setTimeout(() => {
                 setState(tracker.isEngaged() ? "ready" : "idle");
-            }, COPY_FEEDBACK_DURATION);
+            }, duration);
         };
 
         // Tap on tag: copy immediately (mobile)
