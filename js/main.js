@@ -1124,6 +1124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const navOverlay = document.getElementById("navOverlay");
     const navItemsContainer = document.getElementById("navItems");
     const keyBufferEl = document.getElementById("keyBuffer");
+    const navInput = document.getElementById("navInput");
 
     // Static shortcut items (in HTML)
     const shortcutItems = Array.from(document.querySelectorAll(".nav-item[data-shortcut]"));
@@ -1354,12 +1355,21 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSelection();
     };
 
+    const syncInputToState = () => {
+        if (navInput) {
+            navInput.value = searchQuery;
+            navInput.setSelectionRange(searchCursorPos, searchCursorPos);
+        }
+    };
+
     const enterSearchMode = () => {
         navMode = "search";
         searchQuery = "";
         searchCursorPos = 0;
         navSelectedIndex = 0;
         navOverlay?.classList.add("search-mode");
+        syncInputToState();
+        navInput?.focus();
         updateDisplay();
     };
 
@@ -1369,6 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
         searchCursorPos = 0;
         navSelectedIndex = 0;
         navOverlay?.classList.remove("search-mode");
+        navInput?.blur();
         updateDisplay();
     };
 
@@ -1379,6 +1390,7 @@ document.addEventListener("DOMContentLoaded", () => {
         searchQuery = "";
         searchCursorPos = 0;
         navSelectedIndex = 0;
+        if (navInput) navInput.value = "";
         updateDisplay();
     };
 
@@ -1391,6 +1403,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeNav = () => {
         if (!navOverlay) return;
         navOverlay.classList.remove("active", "search-mode");
+        navInput?.blur();
         resetState();
     };
 
@@ -1449,10 +1462,67 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Handle input events for mobile keyboard support
+    if (navInput) {
+        navInput.addEventListener("input", () => {
+            if (navMode !== "search") return;
+            searchQuery = navInput.value;
+            searchCursorPos = navInput.selectionStart || searchQuery.length;
+            navSelectedIndex = 0;
+            updateDisplay();
+        });
+
+        navInput.addEventListener("keydown", (e) => {
+            if (navMode !== "search") return;
+
+            // Handle special keys that shouldn't go through normal input
+            if (e.key === "Escape") {
+                e.preventDefault();
+                exitSearchMode();
+                return;
+            }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const visible = getVisibleItems();
+                if (visible[navSelectedIndex]?.dataset.href) {
+                    navigateTo(visible[navSelectedIndex].dataset.href);
+                }
+                return;
+            }
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                const visible = getVisibleItems();
+                if (visible.length > 0) {
+                    navSelectedIndex = (navSelectedIndex + 1) % visible.length;
+                    updateSelection();
+                }
+                return;
+            }
+            if (e.key === "ArrowUp") {
+                e.preventDefault();
+                const visible = getVisibleItems();
+                if (visible.length > 0) {
+                    navSelectedIndex = (navSelectedIndex - 1 + visible.length) % visible.length;
+                    updateSelection();
+                }
+                return;
+            }
+        });
+
+        // Sync cursor position on selection change
+        navInput.addEventListener("selectionchange", () => {
+            if (navMode === "search" && document.activeElement === navInput) {
+                searchCursorPos = navInput.selectionStart || 0;
+                updateDisplay();
+            }
+        });
+    }
+
     // Keyboard handling
     document.addEventListener("keydown", (e) => {
-        // Don't trigger when typing in inputs
-        if (e.target.matches("input, textarea, [contenteditable]")) return;
+        // Don't trigger when typing in inputs (except our nav input which is handled above)
+        if (e.target.matches("input, textarea, [contenteditable]") && e.target !== navInput) return;
+        if (e.target === navInput) return; // Handled by navInput's own keydown listener
 
         const isNavOpen = navOverlay?.classList.contains("active");
 
