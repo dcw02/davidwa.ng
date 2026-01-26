@@ -1,0 +1,113 @@
+[
+  {
+    "type": "page",
+    "title": "home",
+    "path": "/"
+  },
+  {
+    "type": "page",
+    "title": "projects",
+    "path": "/projects"
+  },
+  {
+    "type": "page",
+    "title": "writing",
+    "path": "/writing"
+  },
+  {
+    "type": "page",
+    "title": "Colophon",
+    "path": "/writing/colophon"
+  },
+  {
+    "type": "header",
+    "title": "Layout and Typography",
+    "path": "/writing/colophon#layout-and-typography",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Text and Links and Other Typography Elements",
+    "path": "/writing/colophon#text-and-links-and-other-typography-elements",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Code Blocks",
+    "path": "/writing/colophon#code-blocks",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Lists",
+    "path": "/writing/colophon#lists",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Blockquotes",
+    "path": "/writing/colophon#blockquotes",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Interactive Features",
+    "path": "/writing/colophon#interactive-features",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Sidenotes",
+    "path": "/writing/colophon#sidenotes",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "This is a Longer Subheading Example to Test Wrapping",
+    "path": "/writing/colophon#this-is-a-longer-subheading-example-to-test-wrapping",
+    "page": "Colophon",
+    "level": 3
+  },
+  {
+    "type": "header",
+    "title": "Tables",
+    "path": "/writing/colophon#tables",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Images",
+    "path": "/writing/colophon#images",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Mathematical Notation",
+    "path": "/writing/colophon#mathematical-notation",
+    "page": "Colophon",
+    "level": 2
+  },
+  {
+    "type": "header",
+    "title": "Examples",
+    "path": "/writing/colophon#examples",
+    "page": "Colophon",
+    "level": 3
+  },
+  {
+    "type": "header",
+    "title": "Future Enhancements",
+    "path": "/writing/colophon#future-enhancements",
+    "page": "Colophon",
+    "level": 2
+  }
+]

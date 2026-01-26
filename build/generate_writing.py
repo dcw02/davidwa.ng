@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from html import escape as html_escape
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from highlight_code import format_code_block
 from render_math import render_math_blocks
@@ -962,12 +963,55 @@ def build_article(
     return "\n".join(article_lines) + "\n"
 
 
-def process_markdown_file(path: Path, output_dir: Path) -> Path:
+def heading_to_slug(text: str) -> str:
+    """Convert heading text to URL-safe slug."""
+    slug = text.lower().strip()
+    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
+    slug = re.sub(r"\s+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug
+
+
+def extract_search_entries(
+    title: str, slug: str, blocks: Sequence[Block]
+) -> List[Dict[str, Any]]:
+    """Extract search index entries from parsed content."""
+    entries: List[Dict[str, Any]] = []
+    path = f"/writing/{slug}"
+
+    # Add page entry
+    entries.append({
+        "type": "page",
+        "title": title,
+        "path": path,
+    })
+
+    # Add header entries
+    for block in blocks:
+        if block.kind in ("h2", "h3"):
+            header_text = block.text.strip()
+            header_slug = heading_to_slug(header_text)
+            entries.append({
+                "type": "header",
+                "title": header_text,
+                "path": f"{path}#{header_slug}",
+                "page": title,
+                "level": block.level,
+            })
+
+    return entries
+
+
+def process_markdown_file(path: Path, output_dir: Path) -> Tuple[Path, List[Dict[str, Any]]]:
     raw = path.read_text(encoding="utf-8")
     metadata, body = parse_front_matter(raw)
     slug = sanitize_slug(metadata.get("slug"), path.stem)
     metadata["slug"] = slug
     blocks, extracted_title, right_rail_html, sidenote_defs, link_defs = parse_markdown_body(body)
+
+    title = (metadata.get("title") or extracted_title or slug).strip()
+    search_entries = extract_search_entries(title, slug, blocks)
+
     article_html = build_article(
         metadata,
         blocks,
@@ -979,7 +1023,7 @@ def process_markdown_file(path: Path, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{slug}.html"
     output_path.write_text(article_html, encoding="utf-8")
-    return output_path
+    return output_path, search_entries
 
 
 def resolve_targets(targets: Sequence[str], content_dir: Path) -> List[Path]:
@@ -1025,14 +1069,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("No markdown files found", file=sys.stderr)
         return 1
 
+    # Static pages (always included in search index)
+    all_search_entries: List[Dict[str, Any]] = [
+        {"type": "page", "title": "home", "path": "/"},
+        {"type": "page", "title": "projects", "path": "/projects"},
+        {"type": "page", "title": "writing", "path": "/writing"},
+    ]
+
     for path in target_files:
         try:
-            output_path = process_markdown_file(path, output_dir)
+            output_path, search_entries = process_markdown_file(path, output_dir)
         except Exception as exc:
             print(f"Failed to process {path}: {exc}", file=sys.stderr)
             return 1
         rel_output = output_path.relative_to(ROOT_DIR)
         print(f"Wrote {rel_output}")
+        all_search_entries.extend(search_entries)
+
+    # Write search index
+    search_index_path = ROOT_DIR / "_content" / "search-index.json"
+    search_index_path.write_text(
+        json.dumps(all_search_entries, indent=2),
+        encoding="utf-8"
+    )
+    print(f"Wrote _content/search-index.json ({len(all_search_entries)} entries)")
 
     return 0
 

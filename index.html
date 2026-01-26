@@ -26,6 +26,7 @@
 
         <link rel="canonical" href="https://davidwa.ng">
         <link rel="stylesheet" href="/fonts/iosevka_web/Iosevka.min.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
         <link rel="stylesheet" href="/css/main.min.css">
 
         <link rel="icon" type="image/png" href="/assets/favicon.png" />
@@ -49,15 +50,42 @@
     </head>
 
     <body>
+        <!-- Vim-style nav overlay -->
+        <div class="nav-overlay" id="navOverlay">
+            <div class="nav-panel">
+                <div class="nav-title">NAVIGATION</div>
+                <div class="nav-header">
+                    <span class="nav-prompt">&gt;</span>
+                    <div class="nav-buffer-scroll">
+                        <div class="key-buffer" id="keyBuffer"></div>
+                    </div>
+                </div>
+                <div class="nav-items" id="navItems">
+                    <div class="nav-item" data-action="search">
+                        <span class="nav-label">search</span>
+                        <div class="nav-keys"><span class="key">/</span></div>
+                    </div>
+                    <div class="nav-item" data-href="/" data-shortcut="gh">
+                        <span class="nav-label">home</span>
+                        <div class="nav-keys"><span class="key">g</span><span class="key">h</span></div>
+                    </div>
+                    <div class="nav-item" data-href="/projects" data-shortcut="gp">
+                        <span class="nav-label">projects</span>
+                        <div class="nav-keys"><span class="key">g</span><span class="key">p</span></div>
+                    </div>
+                    <div class="nav-item" data-href="/writing" data-shortcut="gw">
+                        <span class="nav-label">writing</span>
+                        <div class="nav-keys"><span class="key">g</span><span class="key">w</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="container">
             <h1>David Wang</h1>
             <div class="subtitle">
                 <span data-subtitle-0="gpu performance engineer" data-subtitle-1="gpu perf engineer" data-subtitle-2="gpu perf eng">gpu performance engineer</span>
-                <nav class="menu">
-                    <a class="item active" href="/">home</a>
-                    <a class="item" href="/projects">projects</a>
-                    <a class="item" href="/writing">writing</a>
-                </nav>
+                <span class="nav-trigger" id="navTrigger"><span class="nav-trigger__hint">[:]</span> nav</span>
             </div>
 
             <main id="content"></main>

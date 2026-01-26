@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const contentEl = document.getElementById("content");
     if (!contentEl) return;
 
-    const navLinks = Array.from(document.querySelectorAll(".subtitle .menu a.item"));
     const headerTitleEl = document.querySelector(".container > h1");
     const subtitlePrimaryEl = document.querySelector(".subtitle > span:first-child");
     const subtitleContainerEl = subtitlePrimaryEl?.closest(".subtitle");
@@ -975,15 +974,6 @@ document.addEventListener("DOMContentLoaded", () => {
         handleAllMenus();
     };
 
-    const setActiveNav = (path) => {
-        const normalized = normalizePath(path);
-        const activeKey = normalized.startsWith("/writing/") ? "/writing" : normalized;
-        navLinks.forEach((link) => {
-            const href = normalizePath(link.getAttribute("href"));
-            link.classList.toggle("active", href === activeKey);
-        });
-    };
-
     const scrollToHeadingById = (id, animate = true) => {
         if (!id) return false;
         const target = document.getElementById(id);
@@ -1027,7 +1017,6 @@ document.addEventListener("DOMContentLoaded", () => {
             applyHeaderFromContent(route);
 
             if (route.documentTitle) document.title = route.documentTitle;
-            setActiveNav(canonicalPath);
 
             if (pushState) {
                 history.pushState({ path: canonicalPath, hash: null }, document.title, canonicalPath);
@@ -1056,17 +1045,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // ============================================================
     // Event Handlers
     // ============================================================
-
-    // Nav link clicks
-    navLinks.forEach((link) => {
-        link.addEventListener("click", (e) => {
-            e.preventDefault();
-            const path = normalizePath(link.getAttribute("href"));
-            if (path !== normalizePath(window.location.pathname)) {
-                loadRoute(path);
-            }
-        });
-    });
 
     // Content link clicks
     contentEl.addEventListener("click", (e) => {
@@ -1136,6 +1114,577 @@ document.addEventListener("DOMContentLoaded", () => {
             requestAnimationFrame(() => scrollToHeadingById(hash));
         } else {
             window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    });
+
+    // ============================================================
+    // Vim-Style Navigation
+    // ============================================================
+
+    const navOverlay = document.getElementById("navOverlay");
+    const navItemsContainer = document.getElementById("navItems");
+    const keyBufferEl = document.getElementById("keyBuffer");
+
+    // Static shortcut items (in HTML)
+    const shortcutItems = Array.from(document.querySelectorAll(".nav-item[data-shortcut]"));
+    const searchActionItem = document.querySelector(".nav-item[data-action='search']");
+
+    // State
+    let navMode = "shortcut"; // "shortcut" | "search"
+    let keyBuffer = "";
+    let cursorPos = 0;
+    let searchQuery = "";
+    let searchCursorPos = 0;
+    let navSelectedIndex = 0;
+    let searchIndex = null;
+    let searchResultElements = [];
+
+    // Fetch search index
+    fetch("/_content/search-index.json")
+        .then(r => r.json())
+        .then(data => { searchIndex = data; })
+        .catch(() => { searchIndex = []; });
+
+    const getVisibleItems = () => {
+        if (navMode === "search") {
+            return searchResultElements.filter(el => !el.classList.contains("nav-item--hidden"));
+        }
+        return [searchActionItem, ...shortcutItems].filter(Boolean);
+    };
+
+    // Truncate text to fit container, trimming trailing spaces before ellipsis
+    const truncateLabel = (el) => {
+        const fullText = el.dataset.fullText || el.textContent;
+        el.dataset.fullText = fullText;
+        el.textContent = fullText;
+
+        if (el.scrollWidth <= el.clientWidth) return;
+
+        // Binary search for the right length
+        let lo = 0, hi = fullText.length;
+        while (lo < hi) {
+            const mid = Math.ceil((lo + hi) / 2);
+            el.textContent = fullText.slice(0, mid).trimEnd() + "…";
+            if (el.scrollWidth <= el.clientWidth) {
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        el.textContent = fullText.slice(0, lo).trimEnd() + "…";
+    };
+
+    // Fuzzy match: returns score (higher = better) or -1 if no match
+    const fuzzyMatch = (query, target) => {
+        const q = query.toLowerCase();
+        const t = target.toLowerCase();
+        if (!q) return 0;
+
+        let qi = 0;
+        let score = 0;
+        let lastMatchIdx = -1;
+        let consecutiveBonus = 0;
+
+        for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+            if (t[ti] === q[qi]) {
+                // Base score for match
+                score += 1;
+                // Bonus for consecutive matches
+                if (lastMatchIdx === ti - 1) {
+                    consecutiveBonus += 2;
+                    score += consecutiveBonus;
+                } else {
+                    consecutiveBonus = 0;
+                }
+                // Bonus for match at start or after word boundary
+                if (ti === 0 || /[\s\-_.]/.test(t[ti - 1])) {
+                    score += 5;
+                }
+                lastMatchIdx = ti;
+                qi++;
+            }
+        }
+
+        // All query chars must match
+        return qi === q.length ? score : -1;
+    };
+
+    const renderSearchResults = () => {
+        // Clear previous search results
+        searchResultElements.forEach(el => el.remove());
+        searchResultElements = [];
+
+        if (!searchIndex) return;
+
+        const query = searchQuery.toLowerCase();
+
+        // Fuzzy filter and score
+        const scored = query
+            ? searchIndex
+                .map(entry => ({ entry, score: fuzzyMatch(query, entry.title) }))
+                .filter(x => x.score >= 0)
+            : searchIndex.map(entry => ({ entry, score: 0 }));
+
+        // Sort: by score descending, then pages first, then alphabetically
+        const sorted = scored.sort((a, b) => {
+            if (a.score !== b.score) return b.score - a.score;
+            if (a.entry.type !== b.entry.type) {
+                return a.entry.type === "page" ? -1 : 1;
+            }
+            return a.entry.title.toLowerCase().localeCompare(b.entry.title.toLowerCase());
+        });
+
+        // Handle no results
+        if (query && sorted.length === 0) {
+            const div = document.createElement("div");
+            div.className = "nav-item nav-item--empty";
+            div.innerHTML = '<span class="nav-label">No results</span>';
+            navItemsContainer.appendChild(div);
+            searchResultElements.push(div);
+            return;
+        }
+
+        sorted.forEach(({ entry }) => {
+            const div = document.createElement("div");
+            div.className = "nav-item nav-item--search-result";
+            if (entry.type === "header") {
+                div.classList.add("nav-item--header");
+            }
+            div.dataset.href = entry.path;
+
+            const label = document.createElement("span");
+            label.className = "nav-label";
+            label.textContent = entry.title;
+            div.appendChild(label);
+
+            if (entry.type === "header" && entry.page) {
+                const pageHint = document.createElement("span");
+                pageHint.className = "nav-page-hint";
+                pageHint.textContent = entry.page;
+                div.appendChild(pageHint);
+            }
+
+            div.addEventListener("click", () => navigateTo(entry.path));
+            div.addEventListener("mouseenter", () => {
+                const idx = getVisibleItems().indexOf(div);
+                if (idx !== -1) {
+                    navSelectedIndex = idx;
+                    updateSelection();
+                }
+            });
+
+            navItemsContainer.appendChild(div);
+            searchResultElements.push(div);
+        });
+
+        // Truncate labels after they're in the DOM
+        searchResultElements.forEach(el => {
+            const label = el.querySelector(".nav-label");
+            const pageHint = el.querySelector(".nav-page-hint");
+            if (label) truncateLabel(label);
+            if (pageHint) truncateLabel(pageHint);
+        });
+    };
+
+    const updateSelection = () => {
+        const allItems = [...shortcutItems, searchActionItem, ...searchResultElements].filter(Boolean);
+        allItems.forEach(item => item.classList.remove("selected"));
+
+        const visible = getVisibleItems();
+        if (visible[navSelectedIndex]) {
+            visible[navSelectedIndex].classList.add("selected");
+            visible[navSelectedIndex].scrollIntoView({ block: "nearest" });
+        }
+    };
+
+    const updateDisplay = () => {
+        // Update buffer display with cursor
+        if (keyBufferEl) {
+            const text = navMode === "search" ? "/" + searchQuery : keyBuffer;
+            const pos = navMode === "search" ? searchCursorPos + 1 : cursorPos; // +1 for "/" prefix
+            const before = text.slice(0, pos);
+            const cursorChar = text[pos] || "";
+            const after = text.slice(pos + 1);
+
+            keyBufferEl.innerHTML = "";
+            keyBufferEl.classList.toggle("typing", text.length > 0);
+
+            if (before) {
+                keyBufferEl.appendChild(document.createTextNode(before));
+            }
+            const cursorSpan = document.createElement("span");
+            cursorSpan.className = "key-cursor";
+            cursorSpan.textContent = cursorChar;
+            keyBufferEl.appendChild(cursorSpan);
+            if (after) {
+                keyBufferEl.appendChild(document.createTextNode(after));
+            }
+
+            // Scroll to keep cursor visible
+            const scrollContainer = keyBufferEl.parentElement;
+            if (scrollContainer && cursorSpan) {
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const cursorRect = cursorSpan.getBoundingClientRect();
+                if (cursorRect.right > containerRect.right) {
+                    scrollContainer.scrollLeft += cursorRect.right - containerRect.right;
+                } else if (cursorRect.left < containerRect.left) {
+                    scrollContainer.scrollLeft -= containerRect.left - cursorRect.left;
+                }
+            }
+        }
+
+        // Toggle visibility of shortcut items vs search results
+        const inSearch = navMode === "search";
+        shortcutItems.forEach(item => item.classList.toggle("nav-item--hidden", inSearch));
+        if (searchActionItem) searchActionItem.classList.toggle("nav-item--hidden", inSearch);
+
+        if (inSearch) {
+            renderSearchResults();
+        } else {
+            searchResultElements.forEach(el => el.remove());
+            searchResultElements = [];
+        }
+
+        // Clamp selection
+        const visible = getVisibleItems();
+        if (navSelectedIndex >= visible.length) {
+            navSelectedIndex = Math.max(0, visible.length - 1);
+        }
+
+        updateSelection();
+    };
+
+    const enterSearchMode = () => {
+        navMode = "search";
+        searchQuery = "";
+        searchCursorPos = 0;
+        navSelectedIndex = 0;
+        navOverlay?.classList.add("search-mode");
+        updateDisplay();
+    };
+
+    const exitSearchMode = () => {
+        navMode = "shortcut";
+        searchQuery = "";
+        searchCursorPos = 0;
+        navSelectedIndex = 0;
+        navOverlay?.classList.remove("search-mode");
+        updateDisplay();
+    };
+
+    const resetState = () => {
+        navMode = "shortcut";
+        keyBuffer = "";
+        cursorPos = 0;
+        searchQuery = "";
+        searchCursorPos = 0;
+        navSelectedIndex = 0;
+        updateDisplay();
+    };
+
+    const openNav = () => {
+        if (!navOverlay) return;
+        resetState();
+        navOverlay.classList.add("active");
+    };
+
+    const closeNav = () => {
+        if (!navOverlay) return;
+        navOverlay.classList.remove("active", "search-mode");
+        resetState();
+    };
+
+    const navigateTo = (path) => {
+        closeNav();
+        const currentPath = normalizePath(window.location.pathname);
+        const currentHash = window.location.hash;
+        const [targetPath, targetHash] = path.split("#");
+        const normalizedTarget = normalizePath(targetPath);
+
+        if (normalizedTarget !== currentPath) {
+            loadRoute(normalizedTarget).then(() => {
+                if (targetHash) {
+                    requestAnimationFrame(() => scrollToHeadingById(targetHash));
+                }
+            });
+        } else if (targetHash) {
+            scrollToHeadingById(targetHash);
+        }
+    };
+
+    // Click handlers for shortcut items
+    shortcutItems.forEach((item) => {
+        item.addEventListener("click", () => navigateTo(item.dataset.href));
+        item.addEventListener("mouseenter", () => {
+            const idx = getVisibleItems().indexOf(item);
+            if (idx !== -1) {
+                navSelectedIndex = idx;
+                updateSelection();
+            }
+        });
+    });
+
+    // Search action item click
+    if (searchActionItem) {
+        searchActionItem.addEventListener("click", enterSearchMode);
+        searchActionItem.addEventListener("mouseenter", () => {
+            const idx = getVisibleItems().indexOf(searchActionItem);
+            if (idx !== -1) {
+                navSelectedIndex = idx;
+                updateSelection();
+            }
+        });
+    }
+
+    // Nav trigger click
+    const navTrigger = document.getElementById("navTrigger");
+    if (navTrigger) {
+        navTrigger.addEventListener("click", openNav);
+    }
+
+    // Click outside to close
+    if (navOverlay) {
+        navOverlay.addEventListener("click", (e) => {
+            if (e.target === navOverlay) closeNav();
+        });
+    }
+
+    // Keyboard handling
+    document.addEventListener("keydown", (e) => {
+        // Don't trigger when typing in inputs
+        if (e.target.matches("input, textarea, [contenteditable]")) return;
+
+        const isNavOpen = navOverlay?.classList.contains("active");
+
+        // Open with : or ?
+        if ((e.key === ":" || e.key === "?") && !isNavOpen) {
+            e.preventDefault();
+            openNav();
+            return;
+        }
+
+        // Escape handling
+        if (e.key === "Escape") {
+            if (!isNavOpen) return;
+            e.preventDefault();
+            if (navMode === "search") {
+                exitSearchMode();
+            } else {
+                closeNav();
+            }
+            return;
+        }
+
+        // Ignore modifier keys
+        if (["Control", "Alt", "Meta", "Shift", "CapsLock", "Tab"].includes(e.key)) return;
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        if (isNavOpen) {
+            // Enter search mode with /
+            if (e.key === "/" && navMode === "shortcut") {
+                e.preventDefault();
+                enterSearchMode();
+                return;
+            }
+
+            const visible = getVisibleItems();
+
+            if (navMode === "search") {
+                e.preventDefault();
+
+                // Backspace in search mode - delete before cursor
+                if (e.key === "Backspace") {
+                    if (searchCursorPos > 0) {
+                        searchQuery = searchQuery.slice(0, searchCursorPos - 1) + searchQuery.slice(searchCursorPos);
+                        searchCursorPos--;
+                        navSelectedIndex = 0;
+                        updateDisplay();
+                    } else if (searchQuery.length === 0) {
+                        exitSearchMode();
+                    }
+                    return;
+                }
+
+                // Delete key - delete at cursor
+                if (e.key === "Delete") {
+                    if (searchCursorPos < searchQuery.length) {
+                        searchQuery = searchQuery.slice(0, searchCursorPos) + searchQuery.slice(searchCursorPos + 1);
+                        navSelectedIndex = 0;
+                        updateDisplay();
+                    }
+                    return;
+                }
+
+                // Left/right arrow for cursor movement
+                if (e.key === "ArrowLeft") {
+                    if (searchCursorPos > 0) {
+                        searchCursorPos--;
+                        updateDisplay();
+                    }
+                    return;
+                }
+                if (e.key === "ArrowRight") {
+                    if (searchCursorPos < searchQuery.length) {
+                        searchCursorPos++;
+                        updateDisplay();
+                    }
+                    return;
+                }
+
+                // Up/down arrow for list navigation
+                if (e.key === "ArrowDown") {
+                    if (visible.length > 0) {
+                        navSelectedIndex = (navSelectedIndex + 1) % visible.length;
+                        updateSelection();
+                    }
+                    return;
+                }
+                if (e.key === "ArrowUp") {
+                    if (visible.length > 0) {
+                        navSelectedIndex = (navSelectedIndex - 1 + visible.length) % visible.length;
+                        updateSelection();
+                    }
+                    return;
+                }
+
+                // Enter to select
+                if (e.key === "Enter") {
+                    if (visible[navSelectedIndex]?.dataset.href) {
+                        navigateTo(visible[navSelectedIndex].dataset.href);
+                    }
+                    return;
+                }
+
+                // Insert character at cursor position
+                if (e.key.length === 1) {
+                    searchQuery = searchQuery.slice(0, searchCursorPos) + e.key + searchQuery.slice(searchCursorPos);
+                    searchCursorPos++;
+                    navSelectedIndex = 0;
+                    updateDisplay();
+                }
+                return;
+            }
+
+            // Shortcut mode
+
+            // j/k navigation
+            if (e.key === "j" || e.key === "ArrowDown") {
+                e.preventDefault();
+                if (visible.length > 0) {
+                    navSelectedIndex = (navSelectedIndex + 1) % visible.length;
+                    keyBuffer = "";
+                    cursorPos = 0;
+                    updateDisplay();
+                }
+                return;
+            }
+            if (e.key === "k" || e.key === "ArrowUp") {
+                e.preventDefault();
+                if (visible.length > 0) {
+                    navSelectedIndex = (navSelectedIndex - 1 + visible.length) % visible.length;
+                    keyBuffer = "";
+                    cursorPos = 0;
+                    updateDisplay();
+                }
+                return;
+            }
+
+            // Left/right arrow for cursor movement
+            if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                if (cursorPos > 0) {
+                    cursorPos--;
+                    updateDisplay();
+                }
+                return;
+            }
+            if (e.key === "ArrowRight") {
+                e.preventDefault();
+                if (cursorPos < keyBuffer.length) {
+                    cursorPos++;
+                    updateDisplay();
+                }
+                return;
+            }
+
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const selected = visible[navSelectedIndex];
+                if (selected?.dataset.href) {
+                    navigateTo(selected.dataset.href);
+                } else if (selected?.dataset.action === "search") {
+                    enterSearchMode();
+                }
+                return;
+            }
+
+            // Backspace - delete before cursor
+            if (e.key === "Backspace") {
+                e.preventDefault();
+                if (cursorPos > 0) {
+                    keyBuffer = keyBuffer.slice(0, cursorPos - 1) + keyBuffer.slice(cursorPos);
+                    cursorPos--;
+                    updateDisplay();
+                }
+                return;
+            }
+
+            // Delete - delete at cursor
+            if (e.key === "Delete") {
+                e.preventDefault();
+                if (cursorPos < keyBuffer.length) {
+                    keyBuffer = keyBuffer.slice(0, cursorPos) + keyBuffer.slice(cursorPos + 1);
+                    updateDisplay();
+                }
+                return;
+            }
+
+            // Only add printable characters to buffer
+            if (e.key.length !== 1) return;
+
+            // Insert at cursor position
+            keyBuffer = keyBuffer.slice(0, cursorPos) + e.key + keyBuffer.slice(cursorPos);
+            cursorPos++;
+            updateDisplay();
+
+            // Check for shortcut matches
+            for (const item of shortcutItems) {
+                if (item.dataset.shortcut === keyBuffer) {
+                    navigateTo(item.dataset.href);
+                    return;
+                }
+            }
+        } else {
+            // Direct shortcuts when overlay is closed
+            keyBuffer += e.key;
+
+            if (keyBuffer === "gh") {
+                navigateTo("/");
+                keyBuffer = "";
+            } else if (keyBuffer === "gp") {
+                navigateTo("/projects");
+                keyBuffer = "";
+            } else if (keyBuffer === "gw") {
+                navigateTo("/writing");
+                keyBuffer = "";
+            } else if (keyBuffer === "gg") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                keyBuffer = "";
+            } else if (e.key === "G") {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+                keyBuffer = "";
+            } else if (e.key === "j") {
+                window.scrollBy({ top: 100, behavior: "smooth" });
+                keyBuffer = "";
+            } else if (e.key === "k") {
+                window.scrollBy({ top: -100, behavior: "smooth" });
+                keyBuffer = "";
+            } else if (e.key === "/") {
+                e.preventDefault();
+                openNav();
+                enterSearchMode();
+                keyBuffer = "";
+            }
         }
     });
 
