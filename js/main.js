@@ -1481,6 +1481,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 exitSearchMode();
                 return;
             }
+            if (e.key === "Backspace" && navInput.value === "") {
+                e.preventDefault();
+                exitSearchMode();
+                return;
+            }
             if (e.key === "Enter") {
                 e.preventDefault();
                 const visible = getVisibleItems();
