@@ -1122,6 +1122,8 @@ body[data-selection-lock="true"] [data-selection-active="true"] .code-language-t
 .nav-panel {
     max-width: 400px;
     width: 90vw;
+    font-family: var(--font-family);
+    font-stretch: expanded;
 }
 
 .nav-title {

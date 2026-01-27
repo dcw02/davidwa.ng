@@ -1130,6 +1130,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const shortcutItems = Array.from(document.querySelectorAll(".nav-item[data-shortcut]"));
     const searchActionItem = document.querySelector(".nav-item[data-action='search']");
 
+    // Touch device detection
+    const isTouchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+
     // State
     let navMode = "shortcut"; // "shortcut" | "search"
     let keyBuffer = "";
@@ -1267,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             div.addEventListener("click", () => navigateTo(entry.path));
             div.addEventListener("mouseenter", () => {
+                if (isTouchDevice()) return;
                 const idx = getVisibleItems().indexOf(div);
                 if (idx !== -1) {
                     navSelectedIndex = idx;
@@ -1290,6 +1294,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const updateSelection = () => {
         const allItems = [...shortcutItems, searchActionItem, ...searchResultElements].filter(Boolean);
         allItems.forEach(item => item.classList.remove("selected"));
+
+        // Skip showing selection on touch devices
+        if (isTouchDevice()) return;
 
         const visible = getVisibleItems();
         if (visible[navSelectedIndex]) {
@@ -1429,6 +1436,7 @@ document.addEventListener("DOMContentLoaded", () => {
     shortcutItems.forEach((item) => {
         item.addEventListener("click", () => navigateTo(item.dataset.href));
         item.addEventListener("mouseenter", () => {
+            if (isTouchDevice()) return;
             const idx = getVisibleItems().indexOf(item);
             if (idx !== -1) {
                 navSelectedIndex = idx;
@@ -1441,6 +1449,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchActionItem) {
         searchActionItem.addEventListener("click", enterSearchMode);
         searchActionItem.addEventListener("mouseenter", () => {
+            if (isTouchDevice()) return;
             const idx = getVisibleItems().indexOf(searchActionItem);
             if (idx !== -1) {
                 navSelectedIndex = idx;
